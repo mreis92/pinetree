@@ -1,0 +1,23 @@
+#for parallel execution
+NUM_PROC=20
+
+#scoring schema for complementarity
+MATCH=1
+MISMATCH=-1
+GAP=-1
+GU_WOBBLE=-0.5
+SEED_PENALTY=2
+SEED_REGION_LOWER_BOUND=2
+SEED_REGION_UPPER_BOUND=12
+CENTRAL_REGION_LOWER_BOUND=9
+CENTRAL_REGION_UPPER_BOUND=11
+
+#configurations for evolutionary criterion
+NUM_ERRORS=1
+MARKOV_ORDER=6
+
+#thresholds for modules
+COMP_THRESHOLD=3.5
+ACC_THRESHOLD=16
+EVO_THRESHOLD=40
+
