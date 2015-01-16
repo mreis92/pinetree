@@ -1,3 +1,17 @@
+# Development Folders
+ViennaRNA-2.1.8/
+old/
+randomizer/
+
+# ubuntu executables
+pinetree
+pinetree-debug
+pinetree-evo
+pinetree-evo-debug
+
+# Temporary files
+*~
+
 # Object files
 *.o
 *.ko
