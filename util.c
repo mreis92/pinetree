@@ -49,6 +49,8 @@ void *safe_realloc(void *ptr, size_t size)
 void safe_free(void *mem){
 	if (mem != NULL)
 		free(mem);
+		
+	mem = NULL;
 }
 
 /* Safely opens a file */
