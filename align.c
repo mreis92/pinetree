@@ -2,8 +2,8 @@
 #include <string.h>
 #include "align.h"
 
-#define SEED(n,i,g,s) ((n-i+g >= s->seed_start && n-i+g <= s->seed_stop) ? 1 : 0)
-#define CENTRAL_REGION(n,i,g,s) ((n-i+g >= s->cr_start && n-i+g <= s->cr_stop) ? 1 : 0)
+#define SEED(n,i,g,s) ((n-i-g >= s->seed_start && n-i-g <= s->seed_stop) ? 1 : 0)
+#define CENTRAL_REGION(n,i,g,s) ((n-i-g >= s->cr_start && n-i-g <= s->cr_stop) ? 1 : 0)
 #define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
 
 /* Attributes score to the alignment gien by "align1" and "align2" */
@@ -25,15 +25,19 @@ float align_score(char* align1, char* align2, score_t *smodel){
 	
 	for(i = n-1; i >= 0; i--){
 		float score;
-		boolean seed = SEED(n,i,g,smodel);
+		
 		char a = align1[i];
 		char b = align2[i];
 		
-		if((a == '-') || (b == '-')){
-			if(seed){
+		/* If gap in miRNA sequence, shift seed one nucleotide */
+			if(b == '-')
 				g++;
+			
+		boolean seed = SEED(n,i,g,smodel);
+		
+		if((a == '-') || (b == '-')){
+			if(seed)
 				seed_gap++;
-			}
 			else
 				gap++;
 			
@@ -70,7 +74,7 @@ char *mechanism(char* align1, char* align2, score_t *smodel){
 	uint n = strlen(align1);
 	int center = smodel->cr_stop - smodel->cr_start + 1;
 
-	/* shift center one position for each gap found */
+	/*FIXME: shift center one position for each gap found in transcript */
 	int g = 0; 
 	
 	for(i = n-1; i >= 0; i--){
@@ -78,14 +82,9 @@ char *mechanism(char* align1, char* align2, score_t *smodel){
 		char a = align1[i];
 		char b = align2[i];
 		
-		if((a == '-') || (b == '-')){
-			g++;
-			continue;
-		}
-		
 		if(cr){
 			float score = smodel->score_matrix[(int)a][(int)b];
-			if(score != smodel->match)
+			if((score != smodel->match) || (b == '-'))
 				return "Translational inhibition";
 
 			center--;

@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include "accessibility.h"
 #include "align.h"
+#include "annotation.h"
 #include "dataset.h"
 #include "constants.h"
 #include "fasta.h"
@@ -18,6 +19,7 @@ typedef struct pinetree_args {
 	char* transcript_file;
 	char* mirna_file; 
 	char* align_file; 
+	char* annotation_file;
 	char* output_file;
 	float c_threshold;
 	float a_threshold;
@@ -36,6 +38,22 @@ typedef struct fasta_info{
 	int count;
 } fasta_info;
 
+pinetree_args *initialize_args(){
+	pinetree_args *args = (pinetree_args*) malloc(sizeof(pinetree_args));
+	
+	args->sschema = create_score_schema(MATCH, MISMATCH, GAP, GU, SEED_PENALTY, SEED_START, SEED_STOP, CR_START, CR_STOP);
+	args->num_processors = NUM_PROCESSORS;
+	args->transcript_file = NULL;
+	args->mirna_file = NULL;
+	args->align_file = NULL;
+	args->output_file = NULL;
+	args->annotation_file = NULL;
+	args->c_threshold = C_THRESHOLD;
+	args->a_threshold = A_THRESHOLD;
+	
+	return args;
+}
+
 void file_joiner(pinetree_args* args, char* header){
 	uint i;
 	FILE *output_file;
@@ -47,13 +65,12 @@ void file_joiner(pinetree_args* args, char* header){
   
 	for (i = 0; i < args->num_processors; ++i) {
 		FILE *file;
-		char line[BUFSIZE]; 
+		char line[BUFSIZE*2]; 
 
 		snprintf(buffer, BUFSIZE, "%s_tmp_%d.csv", args->output_file, i);
 		file = safe_fopen(buffer, "r");
 
-		fgets(line, BUFSIZE, file); /*read header */
-		while(fgets(line, BUFSIZE, file) != NULL){
+		while(fgets(line, BUFSIZE*2, file) != NULL){
 			fputs(line,output_file); 
 		}
 
@@ -108,15 +125,12 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 	int c;
 	int tflag = 0, mflag = 0, aflag = 0;
 	char *config_file = NULL;
-	pinetree_args *args = (pinetree_args*) malloc(sizeof(pinetree_args));
-	args->sschema = create_score_schema(MATCH, MISMATCH, GAP, GU, SEED_PENALTY, SEED_START, SEED_STOP, CR_START, CR_STOP);
-	args->num_processors = NUM_PROCESSORS;
-	args->c_threshold = C_THRESHOLD;
-	args->a_threshold = A_THRESHOLD;
+	
+	pinetree_args *args = initialize_args();
 
 	opterr = 0;
 	
-	while ((c = getopt (argc, argv, "C:t:m:a:o:n:")) != -1){
+	while ((c = getopt (argc, argv, "C:t:m:a:o:n:A:")) != -1){
 		switch (c){
 		case 'C':
 			config_file = optarg;
@@ -139,6 +153,9 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 			break;
 		case 'n':
 			args->num_processors = atoi(optarg);
+			break;
+		case 'A':
+			args->annotation_file = optarg;
 			break;
 		case '?':
 			if (optopt == 'c')
@@ -237,8 +254,11 @@ void target_prediction(int current, fasta_align **aligns, dataset_t *tds, datase
 		
 			char* align = alignment_string(align1, align2, args->sschema);
 			char* reg_mechanism = mechanism(align1, align2, args->sschema);
-
-			fprintf(output_file, "%s,%s,%.1f,%.1f,%s,%s\n", tds->ids[i], mds->ids[j], gscore, ascore, align, reg_mechanism);
+			fprintf(output_file, "%s,%s,%.1f,%.1f,%s,%s", tds->ids[i], mds->ids[j], gscore, ascore, align, reg_mechanism);
+			if(tds->annotations)
+				fprintf(output_file, ",%s", tds->annotations[i] ? tds->annotations[i] : "N/A");
+			fprintf(output_file, "\n");
+			
 			safe_free(align);
 		}
 	}
@@ -255,10 +275,27 @@ int main(int argc, char **argv){
 	dataset_t *mds = parse_fasta(args->mirna_file);
 	
 	fasta_info *info = process_alignment(args->align_file);
+	char *header = "gene,miRNA,gscore,ascore,align,reg_mechanism\n";
 	
-	char* output_header = "gene,miRNA,gscore,ascore,align,reg_mechanism\n";
+	if(args->annotation_file){
+		header = "gene,miRNA,gscore,ascore,align,reg_mechanism,annotation\n";
+		annotate_targets(tds, args->annotation_file);
+	}
+	
 	int batch = info->count/args->num_processors;
 	int remainder = info->count%args->num_processors;
+	
+	/*uint i;
+	FILE *output_file;
+	uint lower = id*batch;
+	uint upper = (id==args->num_processors-1) ? (id+1)*batch + remainder : (id+1)*batch;
+	char buffer[BUFSIZE] = "";
+	snprintf(buffer, BUFSIZE, "%s_tmp_%d.csv", args->output_file, 0);
+	output_file = safe_fopen(buffer, "w");
+			
+	for(i = 0; i < info->count; i++){
+		target_prediction(i,info->aligns,tds,mds,args,output_file);
+	}*/
 	
 	/* Start children. */
 	for (id = 0; id < args->num_processors; ++id) {
@@ -273,7 +310,6 @@ int main(int argc, char **argv){
 			
 			snprintf(buffer, BUFSIZE, "%s_tmp_%d.csv", args->output_file, id);
 			output_file = safe_fopen(buffer, "w");
-			fprintf(output_file, output_header);
 		
 			for (i = lower; i < upper; i++) {
 				target_prediction(i,info->aligns,tds,mds,args,output_file);
@@ -287,7 +323,7 @@ int main(int argc, char **argv){
 	/* Wait for children to exit. */
 	while ((wpid = wait(&status)) > 0);
 	
-	file_joiner(args, output_header);
+	file_joiner(args,header);
 
 	clean_alignments(info);
 	destroy_dataset(tds);
