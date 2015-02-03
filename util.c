@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 
 #include "util.h"
 
@@ -82,6 +83,13 @@ void safe_remove(char *filename) {
 	
 	if(status)
 		error("Cannot remove file.");
+}
+
+/* Returns a string with current system time */
+char *get_system_time(){
+	
+	time_t mytime = time(NULL);
+	return ctime(&mytime);
 }
 
 /* Returns the binary code of a nucleotide char */
