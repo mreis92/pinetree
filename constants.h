@@ -22,8 +22,10 @@
 #define NUM_ERRORS 1
 
 /* Default size for strings */
+#define LONGBUF 1024
 #define BUFSIZE 200
 #define FASTASIZE 81
+#define IDSIZE 10
 
 /* Nucleotide parameters */
 #define _A_ 0
