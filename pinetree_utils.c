@@ -9,7 +9,7 @@ void file_joiner(pinetree_args* args, char* header){
 	FILE *output_file;
 	char buffer[BUFSIZE] = "";
 
-	snprintf(buffer, BUFSIZE, "%s.csv", args->output_file);
+	snprintf(buffer, BUFSIZE, "%s.%s", args->output_file, (args->human_output ? "txt" : "csv"));
 	output_file = safe_fopen(buffer, "w");
 	
 	fprintf(output_file, "# Start time of execution: %s", args->start_time);
