@@ -1,6 +1,6 @@
 CC = gcc
 
-DEBUG = -g -Wall -Wextra -pedantic -fdiagnostics-show-option #-Wno-long-long -Wno-return-type -Wno-parentheses
+DEBUG = -g -Wall -Wextra -pedantic -fdiagnostics-show-option 
 OPT = -O3
 OMP = -fopenmp
 
@@ -27,11 +27,11 @@ evo:
 	$(CC) $(OPT) $(OMP) $(FILES) $(EFILES) -o $(EXE_EVO) -L. -lm
 
 debug:
-	export OMP_NUM_THREADS=2
+	export OMP_NUM_THREADS=1
 	$(CC) $(DEBUG) $(OMP) $(FILES) $(PFILES) -o $(EXE) -I$(RNAHEADERS) -L$(RNALIB) $(LIBS)
 	
 debug_evo:
-	export OMP_NUM_THREADS=2
+	export OMP_NUM_THREADS=1
 	$(CC) $(DEBUG) $(OMP) $(FILES) $(EFILES) -o $(EXE_EVO) -L. -lm
 
 all: pinetree evo
