@@ -1,6 +1,6 @@
 CC = gcc
 
-DEBUG = -g -Wall -Wextra -pedantic -fdiagnostics-show-option
+DEBUG = -g -Wall -Wextra -pedantic -fdiagnostics-show-option #-Wno-long-long -Wno-return-type -Wno-parentheses
 OPT = -O3
 OMP = -fopenmp
 
@@ -11,9 +11,8 @@ CUSTOM_LIBS = -lRNA
 LIBS = -lm $(CUSTOM_LIBS)
 EXE = pinetree
 EXE_EVO = pinetree_evo
-EXE_DEBUG = pinetree_debug pinetree_evo_debug
 
-FILES = util.c fasta.c dataset.c 
+FILES = annotation.c dataset.c fasta.c pinetree_utils.c strmap.c util.c   
 PFILES = pinetree.c accessibility.c align.c RNAup_cmdl.c RNAplfold_cmdl.c RNAup.c RNAplfold.c 
 EFILES = model.c evo.c pinetree_evo.c
 
@@ -29,14 +28,16 @@ evo:
 
 debug:
 	export OMP_NUM_THREADS=2
-	$(CC) $(DEBUG) $(OMP) $(FILES) $(PFILES) -o pinetree_debug -I$(RNAHEADERS) -L$(RNALIB) $(LIBS)
+	$(CC) $(DEBUG) $(OMP) $(FILES) $(PFILES) -o $(EXE) -I$(RNAHEADERS) -L$(RNALIB) $(LIBS)
 	
 debug_evo:
 	export OMP_NUM_THREADS=2
-	$(CC) $(DEBUG) $(OMP) $(FILES) $(EFILES) -o pinetree_evo_debug -L. -lm
+	$(CC) $(DEBUG) $(OMP) $(FILES) $(EFILES) -o $(EXE_EVO) -L. -lm
+
+all: pinetree evo
 	
 clean:
-	rm -f $(EXE) $(EXE_EVO) $(EXE_DEBUG)  *~ *.o
+	rm -f $(EXE) $(EXE_EVO) *~ *.o
 
 pack-pinetree:
 	mkdir -p pinetree-$(VER)
