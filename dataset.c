@@ -20,9 +20,6 @@ dataset_t *create_dataset(uint seqn, char **sequences, char **ids){
 void destroy_dataset(dataset_t * ds){
 	uint i = 0;
 
-	if (ds == NULL)
-		return;
-
 	for (i = 0; i < ds->seqn; i++) {
 		safe_free(ds->sequences[i]);
 		safe_free(ds->ids[i]);
