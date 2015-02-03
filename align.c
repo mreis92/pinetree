@@ -11,10 +11,10 @@
 fasta_info *process_alignment(char* filename){
 	fasta_info *info;
 	fasta_align **aligns;
-	int num_entries;
 	int miRNA_id, target_id;
 	char miRNA_seq[BUFSIZE], target_seq[BUFSIZE];
 	int start;
+	int num_entries = 0;
 	
 	FILE *file = safe_fopen(filename, "r");
 	int count = 0; 
