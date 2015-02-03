@@ -56,10 +56,12 @@ void initialize_parameters(char* filename, pinetree_args* args){
 	snprintf(args->param_info,	sizeof args->param_info,
 							"# Evolutionary threshold: %.1f\n"
 							"# Markov order: %u\n"
-							"# Number of errors allowed: %u\n",
+							"# Number of errors allowed: %u\n"
+							"# Human readable output: %s\n\n",
 							args->e_threshold, 
 							args->markov_order, 
-							args->num_errors);
+							args->num_errors,
+							(args->human_output ? "Yes" : "No"));
 	
 	args->temp_file = (char**)safe_malloc(sizeof(char*) * args->num_processors);
 	for(i = 0; i < args->num_processors; i++)
@@ -77,7 +79,7 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 	
 	opterr = 0;
 	
-	while ((c = getopt (argc, argv, "C:t:m:o:n:A:")) != -1){
+	while ((c = getopt (argc, argv, "C:t:m:o:n:A:H")) != -1){
 		switch (c){
 		case 'C':
 			config_file = optarg;
@@ -99,6 +101,9 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 			break;
 		case 'A':
 			args->annotation_file = optarg;
+			break;
+		case 'H':
+			args->human_output = 1;
 			break;
 		case '?':
 			if (optopt == 'c')
@@ -147,12 +152,24 @@ int main(int argc, char **argv){
 		#pragma omp for 
 		for (i = 0; i < tds->seqn; i++) {
 			for(j = 0; j < mds->seqn; j++){
-				long double escore = calculate_escore(evo_info, j, i);
-				fprintf(output_file, "%s,%s,%Lg", tds->ids[i], mds->ids[j], escore);
+				ldouble escore = calculate_escore(evo_info, j, i);
 				
-				if(tds->annotations)
-					fprintf(output_file, ",%s", tds->annotations[i] ? tds->annotations[i] : "N/A");
-				fprintf(output_file, "\n");
+				if(args->human_output){
+					fprintf(output_file, "target id: %s\n", tds->ids[i]);
+					if(tds->annotations)
+						fprintf(output_file, "target info: %s\n", tds->annotations[i] ? tds->annotations[i] : "N/A");
+						
+					fprintf(output_file, "miRNA id: %s\n", mds->ids[j]);
+					fprintf(output_file, "Evolutionary score: %.1f\n", escore);
+					fprintf(output_file, "#\n");
+				}	
+				else {
+					fprintf(output_file, "%s,%s,%Lg", tds->ids[i], mds->ids[j], escore);
+					
+					if(tds->annotations)
+						fprintf(output_file, ",%s", tds->annotations[i] ? tds->annotations[i] : "N/A");
+					fprintf(output_file, "\n");
+				}
 			}
 		}
 		
