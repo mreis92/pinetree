@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <omp.h>
 #include <time.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -363,7 +364,7 @@ int main(int argc, char **argv){
 	else {
 		if(args->normalization)
 			normalized_prediction(info, args, tds, mds);
-		else //default mode
+		else /* default mode */
 			simple_target_prediction(info, args, tds, mds);
 	}
 	
@@ -382,73 +383,6 @@ int main(int argc, char **argv){
 
 	return 0;
 }
-
-
-/*int main(int argc, char **argv){
-	uint id;
-	int status;
-	pid_t wpid;
-	
-	pinetree_args* args = read_cml_arguments(argc, argv);
-	
-	dataset_t *tds = parse_fasta(args->transcript_file);
-	dataset_t *mds = parse_fasta(args->mirna_file);
-	
-	fasta_info *info = process_alignment(args->align_file);
-	char *header = "gene,miRNA,gscore,ascore,align,reg_mechanism\n";
-	
-	if(args->annotation_file){
-		header = "gene,miRNA,gscore,ascore,align,reg_mechanism,annotation\n";
-		annotate_targets(tds, args->annotation_file);
-	}
-	
-	int batch = info->count/args->num_processors;
-	int remainder = info->count%args->num_processors;
-	
-	/*uint i;
-	FILE *output_file;
-	uint lower = id*batch;
-	uint upper = (id==args->num_processors-1) ? (id+1)*batch + remainder : (id+1)*batch;
-	char buffer[BUFSIZE] = "";
-	snprintf(buffer, BUFSIZE, "%s_tmp_%d.csv", args->output_file, 0);
-	output_file = safe_fopen(buffer, "w");
-			
-	for(i = 0; i < info->count; i++){
-		target_prediction(i,info->aligns,tds,mds,args,output_file);
-	}
-	
-	/* Start children. 
-	for (id = 0; id < args->num_processors; ++id) {
-		if ((wpid = fork()) < 0) 
-			printf("Error in fork\n");
-		else if (wpid == 0) {
-			uint i;
-			uint lower = id*batch;
-			uint upper = (id==args->num_processors-1) ? (id+1)*batch + remainder : (id+1)*batch;
-			FILE *output_file = safe_fopen(args->temp_file[id], "w");
-		
-			for (i = lower; i < upper; i++) {
-				target_prediction(i,info->aligns,tds,mds,args,output_file);
-			}
-			
-			safe_fclose(output_file);
-			exit(0);
-		}
-	}
-
-	/* Wait for children to exit. 
-	while ((wpid = wait(&status)) > 0);
-	
-	file_joiner(args,header);
-
-	clean_alignments(info);
-	destroy_dataset(tds);
-	destroy_dataset(mds);
-	destroy_score_schema(args->sschema);
-	safe_free(args);
-
-	return 0;
-}*/
 
 
 
