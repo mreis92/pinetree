@@ -1,12 +1,12 @@
 #ifndef EVO_H
 #define EVO_H
 
+#include "constants.h"
+#include "dataset.h"
+#include "fasta.h"
+#include "model.h"
 #include "types.h"
 #include "util.h"
-#include "dataset.h"
-#include "model.h"
-#include "fasta.h"
-#include "constants.h"
 
 typedef struct evo_info_t {
 	stat_model_t *background_model;

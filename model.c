@@ -12,11 +12,11 @@ stat_model_t *create_model(int markov_order){
 	stat_model_t *model = (stat_model_t *)safe_malloc(sizeof(stat_model_t));
 	model->markov_order = markov_order;
 	model->entries = pow(NUCLEOTIDES,markov_order)+1;
-	model->p = (long double*)safe_calloc(model->entries, sizeof(long double));
-	model->A = (long double**)safe_malloc(sizeof(long double*) * model->entries);
+	model->p = (ldouble*)safe_calloc(model->entries, sizeof(ldouble));
+	model->A = (ldouble**)safe_malloc(sizeof(ldouble*) * model->entries);
 	
 	for(i = 0; i < model->entries; i++){
-		model->A[i] = (long double*)safe_calloc(NUCLEOTIDES+1, sizeof(long double));
+		model->A[i] = (ldouble*)safe_calloc(NUCLEOTIDES+1, sizeof(ldouble));
 	}
 	
 	return model;
@@ -229,13 +229,13 @@ mirna_info_t *create_mirna_info(uint gene_seqn)
 
 	mirna_info_t *mirna = (mirna_info_t *)safe_malloc(sizeof(mirna_info_t));
 	mirna->gene_prob =
-	    (long double **)safe_malloc(sizeof(long double *) * NUM_ERRORS);
+	    (ldouble **)safe_malloc(sizeof(ldouble *) * NUM_ERRORS);
 	mirna->background_prob =
-	    (long double *)safe_malloc(sizeof(long double) * NUM_ERRORS);
+	    (ldouble *)safe_malloc(sizeof(ldouble) * NUM_ERRORS);
 
 	for (e = 0; e < NUM_ERRORS; e++)
 		mirna->gene_prob[e] =
-		    (long double *)safe_malloc(sizeof(long double) * gene_seqn);
+		    (ldouble *)safe_malloc(sizeof(ldouble) * gene_seqn);
 
 	return mirna;
 }

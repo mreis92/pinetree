@@ -1,10 +1,10 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include "types.h"
-#include "util.h"
 #include "dataset.h"
 #include "fasta.h"
+#include "types.h"
+#include "util.h"
 
 /* If you want to allow N errors in your sequences, define NUM_ERRORS as N+1 */
 #define NUM_ERRORS 1
@@ -14,8 +14,8 @@
 typedef struct stat_model_t {
 	uint markov_order;
 	uint entries;
-	long double *p;
-	long double **A;
+	ldouble *p;
+	ldouble **A;
 } stat_model_t;
 
 /* A set of statistical models, with an id associated with each model */
@@ -31,8 +31,8 @@ typedef struct mirna_info_t {
 	char *sequence;
 	char *id;
 	uint length;
-	long double *background_prob;
-	long double **gene_prob;
+	ldouble *background_prob;
+	ldouble **gene_prob;
 
 } mirna_info_t;
 
