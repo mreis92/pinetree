@@ -10,9 +10,10 @@ USAGE="	USAGE: bash pinetree_evo.sh -t path/to/transcript/file -m path/to/mirna/
 		optional flags:\n
 		-n number of processors\n
 		-h help\n
-		-o path/to/output/folder (one will be created if it doesn't exist)"
-
-while getopts ":t:m:n:o:h" opt; do
+		-o path/to/output/folder (one will be created if it doesn't exist)\n
+		-a path/to/annotation/file"
+		
+while getopts ":t:m:n:o:a:h" opt; do
   case $opt in
     t)
       TRANSCRIPT=$OPTARG
@@ -27,6 +28,9 @@ while getopts ":t:m:n:o:h" opt; do
       ;;
 	o)
       OUTPUT=$OPTARG
+      ;;
+    a)
+      ANNOTATION="-A $OPTARG"
       ;;
 	h)
       echo -e $USAGE
@@ -50,7 +54,7 @@ fi
 
 mkdir -p $OUTPUT
 
-./pinetree_evo -C CONFIG -t $TRANSCRIPT -m $MIRNA -o $OUTPUT/pinetree_evo
+./pinetree_evo -C CONFIG -t $TRANSCRIPT -m $MIRNA -o $OUTPUT/pinetree_evo $ANNOTATION
 
 
 

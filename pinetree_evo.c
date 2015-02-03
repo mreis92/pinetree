@@ -3,60 +3,43 @@
 #include <math.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <time.h>
 #include <sys/wait.h>
 #include <omp.h>
 #include <unistd.h>
 
-#include "evo.h"
-#include "dataset.h"
+#include "annotation.h"
 #include "constants.h"
-#include "util.h"
+#include "dataset.h"
+#include "evo.h"
 #include "fasta.h"
+#include "pinetree_utils.h"
+#include "util.h"
 
-typedef struct pinetree_args {
-	uint num_processors;
-	char* transcript_file;
-	char* mirna_file; 
-	char* output_file;
-	char* subset_file;
-	float e_threshold;
-	uint num_errors;
-	uint markov_order;
-} pinetree_args;
-
-void file_joiner(pinetree_args* args, char* header){
-	uint i;
-
-	char buffer[BUFSIZE] = "";
-	snprintf(buffer, BUFSIZE, "%s.csv", args->output_file);
-	FILE *output_file = safe_fopen(buffer, "w");
-	fputs(header, output_file);
-  
-	for (i = 0; i < args->num_processors; ++i) {
-		char line[BUFSIZE]; 
-
-		snprintf(buffer, BUFSIZE, "%s_tmp_%d.csv", args->output_file, i);
-
-		FILE *file = safe_fopen(buffer, "r" );
-
-		fgets(line, BUFSIZE, file); /*read header */
-		while(fgets(line, BUFSIZE, file) != NULL){
-			fputs(line,output_file); 
-		}
-
-		fclose(file);
-		remove(buffer); /*TODO: safe_remove */
-	}
-	fclose(output_file);
+pinetree_args *initialize_args(){
+	pinetree_args *args = (pinetree_args*) safe_malloc(sizeof(pinetree_args));
+	args->start_time = get_system_time();
+	args->num_processors = NUM_PROCESSORS;
+	args->transcript_file = NULL;
+	args->mirna_file = NULL;
+	args->output_file = NULL;
+	args->annotation_file = NULL;
+	args->e_threshold = E_THRESHOLD;
+	args->num_errors = NUM_ERRORS;
+	args->markov_order = MARKOV_ORDER;
+	args->human_output = 0;
+	
+	return args;
 }
 
 void initialize_parameters(char* filename, pinetree_args* args){
-	char buffer[50];
+	char buffer[BUFSIZE];
 	char *parameter, *value;
+	uint i;
 
 	FILE *config_file = safe_fopen(filename, "r");
 
-	while(fgets (buffer, 50, config_file) != NULL){
+	while(fgets (buffer, BUFSIZE, config_file) != NULL){
 		parameter = strtok(buffer, "=");
 		value = strtok(NULL, "");
 
@@ -70,24 +53,31 @@ void initialize_parameters(char* filename, pinetree_args* args){
 			sscanf(value, "%f", &(args->e_threshold));
 	}
 	
-	fclose(config_file);
+	snprintf(args->param_info,	sizeof args->param_info,
+							"# Evolutionary threshold: %.1f\n"
+							"# Markov order: %u\n"
+							"# Number of errors allowed: %u\n",
+							args->e_threshold, 
+							args->markov_order, 
+							args->num_errors);
+	
+	args->temp_file = (char**)safe_malloc(sizeof(char*) * args->num_processors);
+	for(i = 0; i < args->num_processors; i++)
+		args->temp_file[i] = tempnam("output", "pine");
+	
+	safe_fclose(config_file);
 }
 
 pinetree_args* read_cml_arguments(int argc, char **argv){
-	char buffer[100];
+	char buffer[BUFSIZE];
 	int c;
 	int tflag = 0, mflag = 0;
 	char *config_file = NULL;
-	pinetree_args *args = (pinetree_args*) malloc(sizeof(pinetree_args));
-	args->subset_file = NULL;
-	args->num_processors = NUM_PROCESSORS;
-	args->e_threshold = E_THRESHOLD;
-	args->num_errors = NUM_ERRORS;
-	args->markov_order = MARKOV_ORDER;
+	pinetree_args *args = initialize_args();
 	
 	opterr = 0;
 	
-	while ((c = getopt (argc, argv, "C:t:m:o:n:")) != -1){
+	while ((c = getopt (argc, argv, "C:t:m:o:n:A:")) != -1){
 		switch (c){
 		case 'C':
 			config_file = optarg;
@@ -106,6 +96,9 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 			break;
 		case 'n':
 			args->num_processors = atoi(optarg);
+			break;
+		case 'A':
+			args->annotation_file = optarg;
 			break;
 		case '?':
 			if (optopt == 'c')
@@ -132,41 +125,50 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 }
 
 int main(int argc, char **argv){
-	
+	uint proc;
 	pinetree_args* args = read_cml_arguments(argc, argv);
 	
 	dataset_t *tds = parse_fasta(args->transcript_file);
 	dataset_t *mds = parse_fasta(args->mirna_file);
 	evo_info_t* evo_info = generate_models(tds, tds, mds, args->markov_order, args->num_processors);
 	
-	char* output_header = "gene,miRNA,escore\n";
+	char* header = "gene,miRNA,escore\n";
+	
+	if(args->annotation_file){
+		header = "gene,miRNA,escore,annotation\n";
+		annotate_targets(tds, args->annotation_file);
+	}
 	
 	#pragma omp parallel
 	{
-	uint i, j;
-	FILE *output_file;
-	char buffer[BUFSIZE] = "";
-	
-	snprintf(buffer, BUFSIZE, "%s_tmp_%d.csv", args->output_file, omp_get_thread_num());
-	output_file = safe_fopen(buffer, "w");
-	fprintf(output_file, output_header);
+		uint i, j;
+		FILE *output_file = safe_fopen(args->temp_file[omp_get_thread_num()], "w");
 
-	#pragma omp for 
-	for (i = 0; i < tds->seqn; i++) {
-		for(j = 0; j < mds->seqn; j++){
-			long double escore = calculate_escore(evo_info, j, i);
-			fprintf(output_file, "%s,%s,%Lg\n", tds->ids[i], mds->ids[j], escore);
+		#pragma omp for 
+		for (i = 0; i < tds->seqn; i++) {
+			for(j = 0; j < mds->seqn; j++){
+				long double escore = calculate_escore(evo_info, j, i);
+				fprintf(output_file, "%s,%s,%Lg", tds->ids[i], mds->ids[j], escore);
+				
+				if(tds->annotations)
+					fprintf(output_file, ",%s", tds->annotations[i] ? tds->annotations[i] : "N/A");
+				fprintf(output_file, "\n");
+			}
 		}
+		
+		safe_fclose(output_file);
 	}
 	
-	fclose(output_file);
-	}
-	
-	file_joiner(args, output_header);
+	file_joiner(args, header);
 	
 	cleanup(evo_info); 
 	destroy_dataset(tds);
 	destroy_dataset(mds);
+	
+	for(proc = 0; proc < args->num_processors; proc++)
+		safe_free(args->temp_file[proc]);
+		
+	safe_free(args->temp_file);
 	safe_free(args);
 
 	return 0;

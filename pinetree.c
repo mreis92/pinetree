@@ -3,43 +3,25 @@
 #include <math.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <time.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
 #include "accessibility.h"
 #include "align.h"
 #include "annotation.h"
 #include "dataset.h"
 #include "constants.h"
 #include "fasta.h"
+#include "pinetree_utils.h"
 #include "util.h"
 
-typedef struct pinetree_args {
-	score_t *sschema;
-	uint num_processors;
-	char* transcript_file;
-	char* mirna_file; 
-	char* align_file; 
-	char* annotation_file;
-	char* output_file;
-	float c_threshold;
-	float a_threshold;
-} pinetree_args;
-
-typedef struct fasta_align{
-	char* miRNA_seq;
-	char* target_seq;
-	int target_id;
-	int miRNA_id;
-	int start;
-} fasta_align;
-
-typedef struct fasta_info{
-	fasta_align **aligns;
-	int count;
-} fasta_info;
+/*Fairly big scores to initialize variables for normalization. */
+#define MAX_CSCORE 50.0
+#define MIN_CSCORE 0.0
 
 pinetree_args *initialize_args(){
-	pinetree_args *args = (pinetree_args*) malloc(sizeof(pinetree_args));
+	pinetree_args *args = (pinetree_args*)safe_malloc(sizeof(pinetree_args));
 	
 	args->sschema = create_score_schema(MATCH, MISMATCH, GAP, GU, SEED_PENALTY, SEED_START, SEED_STOP, CR_START, CR_STOP);
 	args->num_processors = NUM_PROCESSORS;
@@ -50,67 +32,45 @@ pinetree_args *initialize_args(){
 	args->annotation_file = NULL;
 	args->c_threshold = C_THRESHOLD;
 	args->a_threshold = A_THRESHOLD;
+	args->start_time = 0;
+	args->accessibility = 0;
+	args->normalization = 0;
+	args->human_output = 0;
 	
 	return args;
 }
 
-void file_joiner(pinetree_args* args, char* header){
-	uint i;
-	FILE *output_file;
-	char buffer[BUFSIZE] = "";
-	
-	snprintf(buffer, BUFSIZE, "%s.csv", args->output_file);
-	output_file = safe_fopen(buffer, "w");
-	fputs(header, output_file);
-  
-	for (i = 0; i < args->num_processors; ++i) {
-		FILE *file;
-		char line[BUFSIZE*2]; 
-
-		snprintf(buffer, BUFSIZE, "%s_tmp_%d.csv", args->output_file, i);
-		file = safe_fopen(buffer, "r");
-
-		while(fgets(line, BUFSIZE*2, file) != NULL){
-			fputs(line,output_file); 
-		}
-
-		safe_fclose(file);
-		safe_remove(buffer);
-	}
-	
-	safe_fclose(output_file);
-}
-
 void initialize_parameters(char* filename, pinetree_args* args){
-	char buffer[50];
+	char buffer[BUFSIZE];
 	char *parameter, *value;
 
 	FILE *config_file = safe_fopen(filename, "r");
+	score_t *s = args->sschema;
 
-	while(fgets (buffer, 50, config_file) != NULL){
+	while(fgets (buffer, BUFSIZE, config_file) != NULL){
 		parameter = strtok(buffer, "=");
 		value = strtok(NULL, "");
 
 		if(STRMATCH("NUM_PROC", parameter))
 			sscanf(value, "%u", &(args->num_processors));
 		else if(STRMATCH("GAP", parameter))
-			sscanf(value, "%f", &(args->sschema->gap));
+			sscanf(value, "%f", &(s->gap));
 		else if(STRMATCH("MATCH", parameter))
-			sscanf(value, "%f", &(args->sschema->match));
+			sscanf(value, "%f", &(s->match));
 		else if(STRMATCH("MISMATCH", parameter))
-			sscanf(value, "%f", &(args->sschema->mismatch));
+			sscanf(value, "%f", &(s->mismatch));
 		else if(STRMATCH("GU_WOBBLE", parameter))
-			sscanf(value, "%f", &(args->sschema->wobble));
+			sscanf(value, "%f", &(s->wobble));
 		else if(STRMATCH("SEED_PENALTY", parameter))
-			sscanf(value, "%f", &(args->sschema->seed_penalty));
+			sscanf(value, "%f", &(s->seed_penalty));
 		else if(STRMATCH("SEED_REGION_LOWER_BOUND", parameter))
-			sscanf(value, "%u", &(args->sschema->seed_start));
+			sscanf(value, "%u", &(s->seed_start));
 		else if(STRMATCH("SEED_REGION_UPPER_BOUND", parameter))
-			sscanf(value, "%u", &(args->sschema->seed_stop));
+			sscanf(value, "%u", &(s->seed_stop));
 		else if(STRMATCH("CENTRAL_REGION_LOWER_BOUND", parameter))
-			sscanf(value, "%u", &(args->sschema->cr_start));
+			sscanf(value, "%u", &(s->cr_start));
 		else if(STRMATCH("CENTRAL_REGION_UPPER_BOUND", parameter))
-			sscanf(value, "%u", &(args->sschema->cr_stop));
+			sscanf(value, "%u", &(s->cr_stop));
 		else if(STRMATCH("COMP_THRESHOLD", parameter))
 			sscanf(value, "%f", &(args->c_threshold));
 		else if(STRMATCH("ACC_THRESHOLD", parameter))
@@ -121,16 +81,17 @@ void initialize_parameters(char* filename, pinetree_args* args){
 }
 
 pinetree_args* read_cml_arguments(int argc, char **argv){
-	char buffer[100];
-	int c;
+	char buffer[BUFSIZE];
+	int i, c;
 	int tflag = 0, mflag = 0, aflag = 0;
+	time_t mytime = time(NULL);
 	char *config_file = NULL;
-	
 	pinetree_args *args = initialize_args();
+	score_t *s = args->sschema;
 
 	opterr = 0;
 	
-	while ((c = getopt (argc, argv, "C:t:m:a:o:n:A:")) != -1){
+	while ((c = getopt (argc, argv, "C:t:m:a:o:n:A:s:zNH")) != -1){
 		switch (c){
 		case 'C':
 			config_file = optarg;
@@ -157,6 +118,18 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 		case 'A':
 			args->annotation_file = optarg;
 			break;
+		case 's':
+			mytime = atoi(optarg);
+			break;
+		case 'z':
+			args->accessibility = 1;
+			break;
+		case 'N':
+			args->normalization = 1;
+			break;
+		case 'H':
+			args->human_output = 1;
+			break;
 		case '?':
 			if (optopt == 'c')
 				sprintf(buffer, "Option -%c requires an argument.\n", optopt);
@@ -180,60 +153,31 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 	
 	if(!aflag)
 		error("Please specify the align file using the -a flag");
-
+		
+	if(args->normalization && args->accessibility)
+		error("Sorry, normalization is not available when calculating accessibility scores");
+		
+	args->start_time = ctime(&mytime);
+	
+	snprintf(args->param_info,	sizeof args->param_info,
+							"# Complementarity threshold: %.1f\n"
+							"# Accessibility threshold: %.1f\n"
+							"# Seed region from nucleotides %u to %u\n"
+							"# Central region from nucleotides %u to %u\n"
+							"# Scoring schema - Match (%.1f) Mismatch(%.1f) Gaps(%.1f) Wobbles(%.1f)\n" 
+							"# Accessibility: %s\tNormalization: %s\tHuman readable output: %s\n\n", 
+							args->c_threshold, args->a_threshold, 
+							s->seed_start, s->seed_stop, 
+							s->cr_start, s->cr_stop,
+							s->match, s->mismatch, s->gap, s->wobble,
+							(args->accessibility ? "Yes" : "No"),
+							(args->normalization ? "Yes" : "No"), (args->human_output ? "Yes" : "No"));
+	
+	args->temp_file = (char**)safe_malloc(sizeof(char*) * args->num_processors);
+	for(i = 0; i < args->num_processors; i++)
+		args->temp_file[i] = tempnam("output", "pine");
+		
 	return args;
-}
-
-void clean_alignments(fasta_info* f){
-	int i;
-		
-	for(i = 0; i < f->count; i++){
-		safe_free(f->aligns[i]->target_seq);
-		safe_free(f->aligns[i]->miRNA_seq);
-		safe_free(f->aligns[i]);
-	}
-	
-	safe_free(f->aligns);
-	safe_free(f);
-}
-
-fasta_info *process_alignment(char* filename){
-	fasta_info *info;
-	fasta_align **aligns;
-	int num_entries;
-	int miRNA_id, target_id;
-	char miRNA_seq[BUFSIZE], target_seq[BUFSIZE];
-	int start;
-	
-	FILE *file = safe_fopen(filename, "r");
-	int count = 0; 
-	
-	fscanf(file,"%d\n", &num_entries);
-	
-	info = (fasta_info*) safe_malloc(sizeof(fasta_info));
-	aligns = (fasta_align**) safe_malloc(sizeof(fasta_align*)*num_entries);
-
-	/* skip header */
-	safe_free(get_string(file, BUFSIZE)); 
-	
-	while (fscanf(file,"%d,%d,%d,%[^,],%s\n", &miRNA_id,&target_id,&start,miRNA_seq, target_seq) != EOF){
-		aligns[count] = (fasta_align*) safe_malloc(sizeof(fasta_align));
-		
-		aligns[count]->miRNA_id = miRNA_id;
-		aligns[count]->target_id = target_id;
-		aligns[count]->start = start;
-		aligns[count]->target_seq = strdup(target_seq);
-		aligns[count]->miRNA_seq = strdup(miRNA_seq);
-		
-		count++;
-	}
-	
-	safe_fclose(file);
-	
-	info->aligns = aligns;
-	info->count = count;
-	
-	return info;
 }
 
 void target_prediction(int current, fasta_align **aligns, dataset_t *tds, dataset_t *mds, pinetree_args* args, FILE* output_file){
@@ -245,26 +189,202 @@ void target_prediction(int current, fasta_align **aligns, dataset_t *tds, datase
 	int start = aligns[current]->start;
  	int length = strlen(mds->sequences[j]) - count_occurrences(align1, '-');
 	
-	float gscore = align_score(align1, align2, args->sschema);
+	float cscore = align_score(align1, align2, args->sschema);
 	
-	if(gscore <= args->c_threshold){
+	if(cscore <= args->c_threshold){
 		double ascore = calculate_accessibility("RNAup", tds->sequences[i], start, length);
+		
+		/*FIXME*/
+		if(ascore == INFINITY)
+			ascore = 25;
 		
 		if(ascore <= args->a_threshold){
 		
 			char* align = alignment_string(align1, align2, args->sschema);
 			char* reg_mechanism = mechanism(align1, align2, args->sschema);
-			fprintf(output_file, "%s,%s,%.1f,%.1f,%s,%s", tds->ids[i], mds->ids[j], gscore, ascore, align, reg_mechanism);
-			if(tds->annotations)
-				fprintf(output_file, ",%s", tds->annotations[i] ? tds->annotations[i] : "N/A");
-			fprintf(output_file, "\n");
+			
+			if(args->human_output){
+				fprintf(output_file, "target id: %s\n", tds->ids[i]);
+				if(tds->annotations)
+					fprintf(output_file, "target info: %s\n", tds->annotations[i] ? tds->annotations[i] : "N/A");
+					
+				fprintf(output_file, "miRNA id: %s\n", mds->ids[j]);
+				fprintf(output_file, "Reg. mechanism: %s\n", reg_mechanism);
+					
+				fprintf(output_file, "Complementarity score: %.1f\n", cscore);
+				fprintf(output_file, "Accessibility score: %.1f\n", ascore);
+				fprintf(output_file, "miRNA:\t%s\n", align2);
+				fprintf(output_file, "\t%s\n", align);
+				fprintf(output_file, "target:\t%s\n", align1);
+				fprintf(output_file, "#\n");
+			}	
+			else {
+				fprintf(output_file, "%s,%s,%.1f,%.1f,%s,%s", tds->ids[i], mds->ids[j], cscore, ascore, align, reg_mechanism);
+			
+				if(tds->annotations)
+					fprintf(output_file, ",%s", tds->annotations[i] ? tds->annotations[i] : "N/A");
+				fprintf(output_file, "\n");
+			}
 			
 			safe_free(align);
 		}
 	}
 }
 
+void simple_target_prediction(fasta_info *info, pinetree_args* args, dataset_t *tds, dataset_t *mds){
+	
+	uint i;
+	fasta_align **aligns = info->aligns;
+	
+	#pragma omp parallel num_threads(args->num_processors)
+	{
+		/*FIXME: use O_EXCL */
+		FILE *output_file = safe_fopen(args->temp_file[omp_get_thread_num()], "w");
+		
+		#pragma omp for 
+		for(i = 0; i < info->count; i++){
+			char *align1 = aligns[i]->target_seq;
+			char *align2 = aligns[i]->miRNA_seq;
+			int target_id = aligns[i]->target_id;
+			int miRNA_id = aligns[i]->miRNA_id;
+			float cscore = align_score(align1, align2, args->sschema);
+			
+			if(cscore <= args->c_threshold){
+				char* align = alignment_string(align1, align2, args->sschema);
+				char* reg_mechanism = mechanism(align1, align2, args->sschema);
+				fprintf(output_file, "%s,%s,%.1f,%s,%s", tds->ids[target_id], mds->ids[miRNA_id], cscore, align, reg_mechanism);
+				
+				if(tds->annotations)
+					fprintf(output_file, ",%s", tds->annotations[target_id] ? tds->annotations[target_id] : "N/A");
+				fprintf(output_file, "\n");
+				
+				safe_free(align);
+			}
+		}
+		
+		safe_fclose(output_file);
+	}
+}
+
+void normalized_prediction(fasta_info *info, pinetree_args* args, dataset_t *tds, dataset_t *mds){
+	
+	uint i, current;
+	fasta_align **aligns = info->aligns;
+	float cdiff = 0.0;
+	float cmin = MAX_CSCORE, cmax = MIN_CSCORE;
+	
+	#pragma omp parallel for reduction(max:cmax) reduction(min:cmin) num_threads(args->num_processors) 
+	for(current = 0; current < info->count; current++){
+		char *align1 = aligns[current]->target_seq;
+		char *align2 = aligns[current]->miRNA_seq;
+		float cscore = align_score(align1, align2, args->sschema);
+		aligns[current]->cscore = cscore;
+		
+		if(cscore < cmin)
+			cmin = cscore;
+			
+		if(cscore > cmax)
+			cmax = cscore;
+	}
+	
+	cdiff = cmax-cmin;
+	
+	#pragma omp parallel num_threads(args->num_processors)
+	{
+		FILE *output_file = safe_fopen(args->temp_file[omp_get_thread_num()], "w");
+		
+		#pragma omp for 
+		for(i = 0; i < info->count; i++){
+			char *align1 = aligns[i]->target_seq;
+			char *align2 = aligns[i]->miRNA_seq;
+			int target_id = aligns[i]->target_id;
+			int miRNA_id = aligns[i]->miRNA_id;
+			float cnorm = (aligns[i]->cscore - cmin)/cdiff;
+			
+			if(cnorm <= args->c_threshold){
+				char* align = alignment_string(align1, align2, args->sschema);
+				char* reg_mechanism = mechanism(align1, align2, args->sschema);
+				fprintf(output_file, "%s,%s,%.5f,%s,%s", tds->ids[target_id], mds->ids[miRNA_id], cnorm, align, reg_mechanism);
+				
+				if(tds->annotations)
+					fprintf(output_file, ",%s", tds->annotations[target_id] ? tds->annotations[target_id] : "N/A");
+				fprintf(output_file, "\n");
+				
+				safe_free(align);
+			}
+		}
+		
+		safe_fclose(output_file);
+	}
+}
+
 int main(int argc, char **argv){
+	uint j;
+	pinetree_args* args = read_cml_arguments(argc, argv);
+	
+	dataset_t *tds = parse_fasta(args->transcript_file);
+	dataset_t *mds = parse_fasta(args->mirna_file);
+	
+	fasta_info *info = process_alignment(args->align_file);
+	char *header = "gene,miRNA,cscore,ascore,align,reg_mechanism\n";
+	
+	if(args->annotation_file){
+		header = "gene,miRNA,cscore,ascore,align,reg_mechanism,annotation\n";
+		annotate_targets(tds, args->annotation_file);
+	}
+	
+	/*We have to use this fork method instead of using OpenMP beacuse RNAup doesn't 
+	 * like when we use parallellize code in the outer execution... */
+	if(args->accessibility){
+		uint id;
+		int status;
+		pid_t wpid;
+		int batch = info->count/args->num_processors;
+		int remainder = info->count%args->num_processors;
+
+		for (id = 0; id < args->num_processors; ++id) {
+			if ((wpid = fork()) < 0) 
+				printf("Error in fork\n");
+			else if (wpid == 0) {
+				uint i;
+				uint lower = id*batch;
+				uint upper = (id==args->num_processors-1) ? (id+1)*batch + remainder : (id+1)*batch;
+				FILE *output_file = safe_fopen(args->temp_file[id], "w");
+				
+				for (i = lower; i < upper; i++) 
+					target_prediction(i,info->aligns,tds,mds,args,output_file);
+				
+				safe_fclose(output_file);
+				exit(0);
+			}
+		}
+		while ((wpid = wait(&status)) > 0); /* Wait for children to exit. */
+	}
+	else {
+		if(args->normalization)
+			normalized_prediction(info, args, tds, mds);
+		else //default mode
+			simple_target_prediction(info, args, tds, mds);
+	}
+	
+	file_joiner(args, header);
+
+	clean_alignments(info);
+	destroy_dataset(tds);
+	destroy_dataset(mds);
+	destroy_score_schema(args->sschema);
+	
+	for(j = 0; j < args->num_processors; j++)
+		safe_free(args->temp_file[j]);
+		
+	safe_free(args->temp_file);
+	safe_free(args);
+
+	return 0;
+}
+
+
+/*int main(int argc, char **argv){
 	uint id;
 	int status;
 	pid_t wpid;
@@ -295,21 +415,17 @@ int main(int argc, char **argv){
 			
 	for(i = 0; i < info->count; i++){
 		target_prediction(i,info->aligns,tds,mds,args,output_file);
-	}*/
+	}
 	
-	/* Start children. */
+	/* Start children. 
 	for (id = 0; id < args->num_processors; ++id) {
 		if ((wpid = fork()) < 0) 
 			printf("Error in fork\n");
 		else if (wpid == 0) {
 			uint i;
-			FILE *output_file;
 			uint lower = id*batch;
 			uint upper = (id==args->num_processors-1) ? (id+1)*batch + remainder : (id+1)*batch;
-			char buffer[BUFSIZE] = "";
-			
-			snprintf(buffer, BUFSIZE, "%s_tmp_%d.csv", args->output_file, id);
-			output_file = safe_fopen(buffer, "w");
+			FILE *output_file = safe_fopen(args->temp_file[id], "w");
 		
 			for (i = lower; i < upper; i++) {
 				target_prediction(i,info->aligns,tds,mds,args,output_file);
@@ -320,7 +436,7 @@ int main(int argc, char **argv){
 		}
 	}
 
-	/* Wait for children to exit. */
+	/* Wait for children to exit. 
 	while ((wpid = wait(&status)) > 0);
 	
 	file_joiner(args,header);
@@ -332,7 +448,7 @@ int main(int argc, char **argv){
 	safe_free(args);
 
 	return 0;
-}
+}*/
 
 
 
