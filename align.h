@@ -1,8 +1,25 @@
 #ifndef ALIGN_H
 #define ALIGN_H
 
+#include <stdio.h>
+
 #include "types.h"
 #include "util.h"
+
+typedef struct fasta_align{
+	char* miRNA_seq;
+	char* target_seq;
+	int target_id;
+	int miRNA_id;
+	int start;
+	float cscore;
+	float ascore;
+} fasta_align;
+
+typedef struct fasta_info{
+	fasta_align **aligns;
+	int count;
+} fasta_info;
 
 typedef struct score_t {
 	float match;
@@ -17,6 +34,8 @@ typedef struct score_t {
 	float **score_matrix;
 } score_t;
 
+fasta_info *process_alignment(char* filename);
+void clean_alignments(fasta_info* f);
 float align_score(char* align1, char* align2, score_t *smodel);
 char* mechanism(char* align1, char* align2, score_t *smodel);
 char* alignment_string(char* align1, char* align2, score_t *smodel);

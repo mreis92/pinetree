@@ -1,12 +1,67 @@
 #include <stdio.h>
 #include <string.h>
+
 #include "align.h"
 
 #define SEED(n,i,g,s) ((n-i-g >= s->seed_start && n-i-g <= s->seed_stop) ? 1 : 0)
 #define CENTRAL_REGION(n,i,g,s) ((n-i-g >= s->cr_start && n-i-g <= s->cr_stop) ? 1 : 0)
 #define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
 
-/* Attributes score to the alignment gien by "align1" and "align2" */
+/* Read the file containing the results of FASTA execution */
+fasta_info *process_alignment(char* filename){
+	fasta_info *info;
+	fasta_align **aligns;
+	int num_entries;
+	int miRNA_id, target_id;
+	char miRNA_seq[BUFSIZE], target_seq[BUFSIZE];
+	int start;
+	
+	FILE *file = safe_fopen(filename, "r");
+	int count = 0; 
+	
+	fscanf(file,"%d\n", &num_entries);
+	
+	info = (fasta_info*) safe_malloc(sizeof(fasta_info));
+	aligns = (fasta_align**) safe_malloc(sizeof(fasta_align*)*num_entries);
+
+	/* skip header */
+	safe_free(get_string(file, BUFSIZE)); 
+	
+	while (fscanf(file,"%d,%d,%d,%[^,],%s\n", &miRNA_id,&target_id,&start,miRNA_seq, target_seq) != EOF){
+		aligns[count] = (fasta_align*) safe_malloc(sizeof(fasta_align));
+		
+		aligns[count]->miRNA_id = miRNA_id;
+		aligns[count]->target_id = target_id;
+		aligns[count]->start = start;
+		aligns[count]->target_seq = strdup(target_seq);
+		aligns[count]->miRNA_seq = strdup(miRNA_seq);
+		
+		count++;
+	}
+	
+	safe_fclose(file);
+	
+	info->aligns = aligns;
+	info->count = count;
+	
+	return info;
+}
+
+/* Destroys the structure that contains the information from FASTA execution */
+void clean_alignments(fasta_info* f){
+	int i;
+		
+	for(i = 0; i < f->count; i++){
+		safe_free(f->aligns[i]->target_seq);
+		safe_free(f->aligns[i]->miRNA_seq);
+		safe_free(f->aligns[i]);
+	}
+	
+	safe_free(f->aligns);
+	safe_free(f);
+}
+
+/* Attributes score to the alignment given by "align1" and "align2" */
 float align_score(char* align1, char* align2, score_t *smodel){
 	int i;
 	uint n = strlen(align1);
@@ -25,15 +80,16 @@ float align_score(char* align1, char* align2, score_t *smodel){
 	
 	for(i = n-1; i >= 0; i--){
 		float score;
+		boolean seed;
 		
 		char a = align1[i];
 		char b = align2[i];
 		
 		/* If gap in miRNA sequence, shift seed one nucleotide */
-			if(b == '-')
-				g++;
+		if(b == '-')
+			g++;
 			
-		boolean seed = SEED(n,i,g,smodel);
+		seed = SEED(n,i,g,smodel);
 		
 		if((a == '-') || (b == '-')){
 			if(seed)
@@ -93,7 +149,7 @@ char *mechanism(char* align1, char* align2, score_t *smodel){
 		if(!center)
 			return "Cleavage";
 	}
-	return "Oops";
+	error("Unexpected error in mechanism detection");
 }
 
 /* Prints the alignment between align1 and align2 */
