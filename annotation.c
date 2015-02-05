@@ -32,6 +32,6 @@ void annotate_targets(dataset_t *tds, char* filename){
 		tds->annotations[atoi(id)] = strdup(description);
 	}
 		
-	safe_fclose(file);
+	safe_fclose(annotation_file);
 	sm_delete(id_map);
 }
