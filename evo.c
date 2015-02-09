@@ -105,7 +105,7 @@ void prob_score(stat_model_t * background_model, stat_models_t * gene_models, mi
 /* Prints the scores for each miRNA against the background and genes */
 ldouble calculate_escore(evo_info_t* evo_info, int mirna_id, int gene_id)
 {
-	lddouble background_prob, gene_prob;
+	ldouble background_prob, gene_prob;
 
 	background_prob = evo_info->mirnas->mirna[mirna_id]->background_prob[0];
 	gene_prob = evo_info->mirnas->mirna[mirna_id]->gene_prob[0][gene_id];
