@@ -21,6 +21,8 @@ typedef struct pinetree_args {
 	char param_info[LONGBUF];
 	float c_threshold;
 	float a_threshold;
+	float nc_threshold;
+	float na_threshold;
 	float e_threshold;
 	uint num_errors;
 	uint markov_order;

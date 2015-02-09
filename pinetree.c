@@ -76,6 +76,10 @@ void initialize_parameters(char* filename, pinetree_args* args){
 			sscanf(value, "%f", &(args->c_threshold));
 		else if(STRMATCH("ACC_THRESHOLD", parameter))
 			sscanf(value, "%f", &(args->a_threshold));
+		else if(STRMATCH("NCOMP_THRESHOLD", parameter))
+			sscanf(value, "%f", &(args->nc_threshold));
+		else if(STRMATCH("NACC_THRESHOLD", parameter))
+			sscanf(value, "%f", &(args->na_threshold));
 	}
 	
 	safe_fclose(config_file);
@@ -211,7 +215,6 @@ void target_prediction(int current, fasta_align **aligns, dataset_t *tds, datase
 					
 				fprintf(output_file, "miRNA id: %s\n", mds->ids[j]);
 				fprintf(output_file, "Reg. mechanism: %s\n", reg_mechanism);
-					
 				fprintf(output_file, "Complementarity score: %.1f\n", cscore);
 				fprintf(output_file, "Accessibility score: %.1f\n", ascore);
 				fprintf(output_file, "miRNA:\t%s\n", align2);
@@ -234,7 +237,7 @@ void target_prediction(int current, fasta_align **aligns, dataset_t *tds, datase
 
 void simple_target_prediction(fasta_info *info, pinetree_args* args, dataset_t *tds, dataset_t *mds){
 	
-	uint i;
+	uint current;
 	fasta_align **aligns = info->aligns;
 	
 	#pragma omp parallel num_threads(args->num_processors)
@@ -243,21 +246,37 @@ void simple_target_prediction(fasta_info *info, pinetree_args* args, dataset_t *
 		FILE *output_file = safe_fopen(args->temp_file[omp_get_thread_num()], "w");
 		
 		#pragma omp for 
-		for(i = 0; i < info->count; i++){
-			char *align1 = aligns[i]->target_seq;
-			char *align2 = aligns[i]->miRNA_seq;
-			int target_id = aligns[i]->target_id;
-			int miRNA_id = aligns[i]->miRNA_id;
+		for(current = 0; current < info->count; current++){
+			char *align1 = aligns[current]->target_seq;
+			char *align2 = aligns[current]->miRNA_seq;
+			int i = aligns[current]->target_id;
+			int j = aligns[current]->miRNA_id;
 			float cscore = align_score(align1, align2, args->sschema);
 			
 			if(cscore <= args->c_threshold){
 				char* align = alignment_string(align1, align2, args->sschema);
 				char* reg_mechanism = mechanism(align1, align2, args->sschema);
-				fprintf(output_file, "%s,%s,%.1f,%s,%s", tds->ids[target_id], mds->ids[miRNA_id], cscore, align, reg_mechanism);
 				
-				if(tds->annotations)
-					fprintf(output_file, ",%s", tds->annotations[target_id] ? tds->annotations[target_id] : "N/A");
-				fprintf(output_file, "\n");
+				if(args->human_output){
+					fprintf(output_file, "target id: %s\n", tds->ids[i]);
+					if(tds->annotations)
+						fprintf(output_file, "target info: %s\n", tds->annotations[i] ? tds->annotations[i] : "N/A");
+						
+					fprintf(output_file, "miRNA id: %s\n", mds->ids[j]);
+					fprintf(output_file, "Reg. mechanism: %s\n", reg_mechanism);
+					fprintf(output_file, "Complementarity score: %.1f\n", cscore);
+					fprintf(output_file, "miRNA:\t%s\n", align2);
+					fprintf(output_file, "\t%s\n", align);
+					fprintf(output_file, "target:\t%s\n", align1);
+					fprintf(output_file, "#\n");
+				}	
+				else {
+					fprintf(output_file, "%s,%s,%.1f,%s,%s", tds->ids[i], mds->ids[j], cscore, align, reg_mechanism);
+				
+					if(tds->annotations)
+						fprintf(output_file, ",%s", tds->annotations[i] ? tds->annotations[i] : "N/A");
+					fprintf(output_file, "\n");
+				}
 				
 				safe_free(align);
 			}
@@ -302,7 +321,7 @@ void normalized_prediction(fasta_info *info, pinetree_args* args, dataset_t *tds
 			int miRNA_id = aligns[i]->miRNA_id;
 			float cnorm = (aligns[i]->cscore - cmin)/cdiff;
 			
-			if(cnorm <= args->c_threshold){
+			if(cnorm <= args->nc_threshold){
 				char* align = alignment_string(align1, align2, args->sschema);
 				char* reg_mechanism = mechanism(align1, align2, args->sschema);
 				fprintf(output_file, "%s,%s,%.5f,%s,%s", tds->ids[target_id], mds->ids[miRNA_id], cnorm, align, reg_mechanism);
