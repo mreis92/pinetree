@@ -35,7 +35,6 @@ pinetree_args *initialize_args(){
 void initialize_parameters(char* filename, pinetree_args* args){
 	char buffer[BUFSIZE];
 	char *parameter, *value;
-	uint i;
 
 	FILE *config_file = safe_fopen(filename, "r");
 
@@ -53,26 +52,12 @@ void initialize_parameters(char* filename, pinetree_args* args){
 			sscanf(value, "%f", &(args->e_threshold));
 	}
 	
-	snprintf(args->param_info,	sizeof args->param_info,
-							"# Evolutionary threshold: %.1f\n"
-							"# Markov order: %u\n"
-							"# Number of errors allowed: %u\n"
-							"# Human readable output: %s\n\n",
-							args->e_threshold, 
-							args->markov_order, 
-							args->num_errors,
-							(args->human_output ? "Yes" : "No"));
-	
-	args->temp_file = (char**)safe_malloc(sizeof(char*) * args->num_processors);
-	for(i = 0; i < args->num_processors; i++)
-		args->temp_file[i] = tempnam("output", "pine");
-	
 	safe_fclose(config_file);
 }
 
 pinetree_args* read_cml_arguments(int argc, char **argv){
 	char buffer[BUFSIZE];
-	int c;
+	int i, c;
 	int tflag = 0, mflag = 0;
 	char *config_file = NULL;
 	pinetree_args *args = initialize_args();
@@ -125,6 +110,20 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 
 	if(!mflag)
 		error("Please specify the miRNA file using the -m flag");
+		
+	snprintf(args->param_info,	sizeof args->param_info,
+							"# Evolutionary threshold: %.1f\n"
+							"# Markov order: %u\n"
+							"# Number of errors allowed: %u\n"
+							"# Human readable output: %s\n\n",
+							args->e_threshold, 
+							args->markov_order, 
+							args->num_errors,
+							(args->human_output ? "Yes" : "No"));
+	
+	args->temp_file = (char**)safe_malloc(sizeof(char*) * args->num_processors);
+	for(i = 0; i < args->num_processors; i++)
+		args->temp_file[i] = tempnam("output", "pine");
 	
 	return args;
 }
@@ -160,7 +159,7 @@ int main(int argc, char **argv){
 						fprintf(output_file, "target info: %s\n", tds->annotations[i] ? tds->annotations[i] : "N/A");
 						
 					fprintf(output_file, "miRNA id: %s\n", mds->ids[j]);
-					fprintf(output_file, "Evolutionary score: %.1f\n", escore);
+					fprintf(output_file, "Evolutionary score: %Lg\n", escore);
 					fprintf(output_file, "#\n");
 				}	
 				else {
