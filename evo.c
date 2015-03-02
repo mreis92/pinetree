@@ -15,15 +15,16 @@ ldouble monad_errors(stat_model_t * model, char *seq, uint num_errors, int offse
 	int temp = (bin_code(seq[offset]))&0b011;
 	
 	if (offset < limit) {
-		llint current = ((previous<<2)&mask)|temp;
-		
-		for (i = 0; i < NUCLEOTIDES; i++)
+		for (i = 0; i < NUCLEOTIDES; i++){
+			llint current = ((previous<<2)&mask)|i;
+			
 			if (i != temp && num_errors > 0){
 				probability += model->A[previous][i] * monad_errors(model, seq, num_errors - 1, offset + 1, limit, current, mask);
 			}
 			else if (i == temp) {
 				probability += model->A[previous][i] * monad_errors(model, seq, num_errors, offset + 1, limit, current, mask);
 			}
+		}
 	} else {
 		for (i = 0; i < NUCLEOTIDES; i++)
 			if ((i != temp && num_errors > 0) || i == temp) {
