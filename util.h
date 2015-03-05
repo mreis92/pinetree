@@ -16,6 +16,8 @@ void *safe_realloc(void *, size_t);
 void safe_free(void *);
 FILE *safe_fopen(const char *filename, const char *mode);
 void safe_fclose(FILE *file);
+FILE *safe_popen(const char *command, const char *mode);
+void safe_pclose(FILE *file);
 void safe_remove(char *filename);
 char *get_system_time();
 uint bin_code(char c);

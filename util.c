@@ -43,7 +43,7 @@ void *safe_realloc(void *ptr, size_t size)
 	if ((mem = realloc(ptr, size)) != NULL)
 		return mem;
 	else 
-		error("realloc, emory re-allocation error");
+		error("realloc, memory re-allocation error");
 }
 
 /* Safely frees memory */
@@ -75,6 +75,29 @@ void safe_fclose(FILE *file){
 	
 	if(status)
 		error("Cannot close file.");
+}
+
+/* Safely opens a pipe */
+FILE *safe_popen(const char *command, const char *mode)
+{
+	char buffer[LONGBUF];
+	FILE *file = NULL;
+	file = popen(command, mode);
+
+	if (file == NULL) {
+		sprintf(buffer, "Could not create process: %s", command);
+		error(buffer);
+	}
+
+	return file;
+}
+
+/* Safely closes a pipe */
+void safe_pclose(FILE *file){
+	int status = pclose(file);
+	
+	if(status)
+		error("Cannot close pipe.");
 }
 
 /* Safely deletes a file */
