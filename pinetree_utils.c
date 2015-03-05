@@ -4,7 +4,7 @@
 #include "pinetree_utils.h"
 
 /* Joins files that resulted from parallel execution in a single file */
-void file_joiner(pinetree_args* args, char* header){
+void file_joiner(pinetree_args* args){
 	uint i;
 	FILE *output_file;
 	char buffer[BUFSIZE] = "";
@@ -25,7 +25,7 @@ void file_joiner(pinetree_args* args, char* header){
 	fputs(args->param_info, output_file);
 	
 	if(!args->human_output)
-		fputs(header, output_file);
+		fputs(args->header, output_file);
   
 	for (i = 0; i < args->num_processors; ++i) {
 		FILE *file;

@@ -13,16 +13,17 @@ typedef struct pinetree_args {
 	uint num_processors;
 	char* transcript_file;
 	char* mirna_file; 
-	char* align_file; 
 	char* annotation_file;
 	char* output_file;
 	char** temp_file;
 	char* start_time;
 	char param_info[LONGBUF];
+	char header[LONGBUF];
 	float c_threshold;
 	float a_threshold;
 	float nc_threshold;
 	float na_threshold;
+	uint evalue;
 	float e_threshold;
 	uint num_errors;
 	uint markov_order;
@@ -32,6 +33,6 @@ typedef struct pinetree_args {
 } pinetree_args;
 
 
-void file_joiner(pinetree_args* args, char* header);
+void file_joiner(pinetree_args* args);
 
 #endif
