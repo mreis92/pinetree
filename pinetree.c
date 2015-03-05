@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <getopt.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <omp.h>
@@ -15,25 +16,28 @@
 #include "constants.h"
 #include "fasta.h"
 #include "pinetree_utils.h"
+#include "strmap.h"
 #include "util.h"
 
 /*Fairly big scores to initialize variables for normalization. */
 #define MAX_CSCORE 50.0
 #define MIN_CSCORE 0.0
 
+#define MAPSIZE 50000
+
 pinetree_args *initialize_args(){
 	pinetree_args *args = (pinetree_args*)safe_malloc(sizeof(pinetree_args));
 	
-	args->sschema = create_score_schema(MATCH, MISMATCH, GAP, GU, SEED_PENALTY, SEED_START, SEED_STOP, CR_START, CR_STOP);
+	args->sschema = create_score_schema(MATCH, MISMATCH, GAP, GU, SEED_START, SEED_STOP, CR_START, CR_STOP);
+	args->start_time = get_system_time();
 	args->num_processors = NUM_PROCESSORS;
 	args->transcript_file = NULL;
 	args->mirna_file = NULL;
-	args->align_file = NULL;
-	args->output_file = NULL;
+	args->output_file = "pinetree";
 	args->annotation_file = NULL;
 	args->c_threshold = C_THRESHOLD;
 	args->a_threshold = A_THRESHOLD;
-	args->start_time = 0;
+	args->evalue = EVALUE;
 	args->accessibility = 0;
 	args->normalization = 0;
 	args->human_output = 0;
@@ -62,116 +66,245 @@ void initialize_parameters(char* filename, pinetree_args* args){
 			sscanf(value, "%f", &(s->mismatch));
 		else if(STRMATCH("GU_WOBBLE", parameter))
 			sscanf(value, "%f", &(s->wobble));
-		else if(STRMATCH("SEED_PENALTY", parameter))
-			sscanf(value, "%f", &(s->seed_penalty));
-		else if(STRMATCH("SEED_REGION_LOWER_BOUND", parameter))
+		else if(STRMATCH("SEED_REGION_START", parameter))
 			sscanf(value, "%u", &(s->seed_start));
-		else if(STRMATCH("SEED_REGION_UPPER_BOUND", parameter))
+		else if(STRMATCH("SEED_REGION_STOP", parameter))
 			sscanf(value, "%u", &(s->seed_stop));
-		else if(STRMATCH("CENTRAL_REGION_LOWER_BOUND", parameter))
+		else if(STRMATCH("CENTRAL_REGION_START", parameter))
 			sscanf(value, "%u", &(s->cr_start));
-		else if(STRMATCH("CENTRAL_REGION_UPPER_BOUND", parameter))
+		else if(STRMATCH("CENTRAL_REGION_STOP", parameter))
 			sscanf(value, "%u", &(s->cr_stop));
+		else if(STRMATCH("EVALUE", parameter))
+			sscanf(value, "%u", &(args->evalue));
 		else if(STRMATCH("COMP_THRESHOLD", parameter))
 			sscanf(value, "%f", &(args->c_threshold));
 		else if(STRMATCH("ACC_THRESHOLD", parameter))
 			sscanf(value, "%f", &(args->a_threshold));
-		else if(STRMATCH("NCOMP_THRESHOLD", parameter))
-			sscanf(value, "%f", &(args->nc_threshold));
-		else if(STRMATCH("NACC_THRESHOLD", parameter))
-			sscanf(value, "%f", &(args->na_threshold));
 	}
 	
 	safe_fclose(config_file);
 }
 
+void common_usage(){
+	print_version();
+	
+	fprintf(stderr,
+		BOLDWHITE "USAGE:\n" RESET 
+		"\t bash pinetree.sh -t [transcript file] -m [mirna file] [-options]\n\n"
+		
+		BOLDWHITE "Common options:\n" RESET 
+		BOLDWHITE "-A, --annotation [annotation file]\n" RESET 
+		"\tprovides information about the transcripts functions\n"
+		BOLDWHITE "-b, --accessibility\n" RESET 
+		"\tturns on accessibility mode\n"
+		BOLDWHITE "-h, --help\n" RESET 
+		"\tdetailed information about the command-line options\n"
+		BOLDWHITE "-n, --normalization\n" RESET 
+		"\tnormalize scores between 0 and 1 \n"
+		BOLDWHITE "-o, --output [file name]\n" RESET 
+		"\tname of the file where the output os stored (e.g -o pinetree)\n"
+		BOLDWHITE "-p --processors\n" RESET 
+		"\tnumber of processors\n"
+		BOLDWHITE "-P, --pretty\n" RESET 
+		"\tenable human readable output\n"
+		);
+	exit(0);
+}
+
+void print_usage(){
+	print_version();
+	
+	fprintf(stderr,
+		BOLDWHITE "USAGE:\n" RESET 
+		"\t bash pinetree.sh -t [transcript file] -m [mirna file] [-options]\n"
+		"\n"
+		BOLDWHITE "Available options:\n" RESET 
+		BOLDWHITE "-a, --a_cut [value]\n" RESET 
+		"\tcutoff value for the accessibility criterion\n"
+		BOLDWHITE "-A, --annotation [annotation file]\n" RESET 
+		"\tprovides information about the transcripts functions\n"
+		BOLDWHITE "-b, --accessibility\n" RESET 
+		"\tturns on accessibility mode\n"
+		BOLDWHITE "-c, --c_cut [value]\n" RESET 
+		"\tcutoff value for the complementarity criterion\n"
+		BOLDWHITE "-C, --config [file]\n" RESET 
+		"\tindicates where the path of the CONFIG file\n"
+		BOLDWHITE "-e, --evalue [value]\n" RESET 
+		"\tcutoff value for the e-value parameter of FASTA\n"
+		BOLDWHITE "-h, --help\n" RESET 
+		"\tdetailed information about the command-line options\n"
+		BOLDWHITE "-n, --normalization\n" RESET 
+		"\tnormalize scores between 0 and 1 \n"
+		BOLDWHITE "-o, --output [file name]\n" RESET 
+		"\tname of the file where the output os stored (e.g -o pinetree)\n"
+		BOLDWHITE "-p --processors\n" RESET 
+		"\tnumber of processors\n"
+		BOLDWHITE "-P, --pretty\n" RESET 
+		"\tenable human readable output\n"
+		BOLDWHITE "-v, --version\n" RESET 
+		"\tprints the current version of the program\n"
+		"\n"
+		BOLDWHITE "Scoring schema parameters:\n" RESET 
+		BOLDWHITE "-g, --gap [value]\n" RESET 
+		"\tvalue for the gap penalty\n"
+		BOLDWHITE "-u, --match [value]\n" RESET 
+		"\tvalue for the match\n"
+		BOLDWHITE "-w, --wobble [value]\n" RESET 
+		"\tvalue for the G:U wobble\n"
+		BOLDWHITE "-y, --mismatch [value]\n" RESET 
+		"\tvalue for the mismatch\n"
+		BOLDWHITE "-x, --central_start [value]\n" RESET 
+		"\tindicates where the central region starts\n"
+		BOLDWHITE "-X, --central_stop [value]\n" RESET 
+		"\tindicates where the central region ends\n"
+		BOLDWHITE "-z, --seed_start [value]\n" RESET 
+		"\tindicates where the seed region starts\n"
+		BOLDWHITE "-Z, --seed_stop [value]\n" RESET 
+		"\tindicates where the seed region ends\n"
+		);
+	exit(0);
+}
+
 pinetree_args* read_cml_arguments(int argc, char **argv){
-	char buffer[BUFSIZE];
 	int i, c;
-	int tflag = 0, mflag = 0, aflag = 0;
-	time_t mytime = time(NULL);
+	int tflag = 0, mflag = 0;
 	char *config_file = NULL;
 	pinetree_args *args = initialize_args();
 	score_t *s = args->sschema;
 
-	opterr = 0;
-	
-	while ((c = getopt (argc, argv, "C:t:m:a:o:n:A:s:zNH")) != -1){
+	while (1){
+      
+		int option_index = 0;
+		static struct option long_options[] = {
+			{"annotation", required_argument, 0, 'A'},
+			{"a_cut", required_argument, 0, 'a'},
+			{"accessibility", no_argument, 0, 'b'},
+			{"central_start", required_argument, 0, 'x'},
+			{"central_stop", required_argument, 0, 'X'},
+			{"config", required_argument, 0, 'C'}, 
+			{"c_cut", required_argument, 0, 'c'},
+			{"cnorm_cut", required_argument, 0, 'd'},
+			{"evalue", required_argument, 0, 'e'},
+			{"gap",  required_argument, 0, 'g'},
+			{"help", no_argument, 0, 'h'},
+			{"match",  required_argument, 0, 'u'},
+			{"mismatch",  required_argument, 0, 'y'},
+			{"mirna",  required_argument, 0, 'm'},
+			{"normalization", no_argument, 0, 'n'},
+			{"output",  required_argument, 0, 'o'},
+			{"pretty",  no_argument, 0, 'P'},
+			{"processors",  required_argument, 0, 'p'},
+			{"seed_start", required_argument, 0, 'z'},
+			{"seed_stop", required_argument, 0, 'Z'},
+			{"target",  required_argument, 0, 't'},
+			{"version",  no_argument, 0, 'v'},
+			{"wobble",  required_argument, 0, 'w'},
+			{0, 0, 0, 0}
+		};
+
+		c = getopt_long (argc, argv, "a:A:bc:C:e:f:g:hm:no:p:Pt:u:vw:x:X:y:z:Z", 
+		long_options, &option_index);
+
+		/* Detect the end of the options. */
+		if (c == -1)
+			break;
+      
 		switch (c){
+		case 'a':
+			args->a_threshold = atof(optarg);
+			break;
+		case 'A':
+			args->annotation_file = optarg;
+			break;
+		case 'b':
+			args->accessibility = 1;
+			break;
+		case 'c':
+			args->c_threshold = atof(optarg);
+			break;
 		case 'C':
 			config_file = optarg;
 			initialize_parameters(config_file, args);
+			break;
+		case 'e':
+			args->evalue = atoi(optarg);
+			break;
+		case 'g':
+			s->gap = atof(optarg);
+			break;
+		case 'h':
+			print_usage();
+		case 'm':
+			mflag = 1;
+			args->mirna_file = optarg;
+			break;
+		case 'n':
+			args->normalization = 1;
+			break;
+		case 'o':
+			args->output_file = optarg;
+			break;
+		case 'p':
+			args->num_processors = atoi(optarg);
+			break;
+		case 'P':
+			args->human_output = 1;
 			break;
 		case 't':
 			tflag = 1;
 			args->transcript_file = optarg;
 			break;
-		case 'm':
-			mflag = 1;
-			args->mirna_file = optarg;
+		case 'u':
+			s->match = atof(optarg);
 			break;
-		case 'a':
-			aflag = 1;
-			args->align_file = optarg;
+		case 'v':
+			print_version();
+			exit(0);
+		case 'w':
+			s->wobble = atof(optarg);
 			break;
-		case 'o':
-			args->output_file = optarg;
+		case 'x':
+			s->cr_start = atoi(optarg);
 			break;
-		case 'n':
-			args->num_processors = atoi(optarg);
+		case 'X':
+			s->cr_stop = atoi(optarg);
 			break;
-		case 'A':
-			args->annotation_file = optarg;
-			break;
-		case 's':
-			mytime = atoi(optarg);
+		case 'y':
+			s->mismatch = atof(optarg);
 			break;
 		case 'z':
-			args->accessibility = 1;
+			s->seed_start = atoi(optarg);
 			break;
-		case 'N':
-			args->normalization = 1;
-			break;
-		case 'H':
-			args->human_output = 1;
+		case 'Z':
+			s->seed_stop = atoi(optarg);
 			break;
 		case '?':
-			if (optopt == 'c')
-				sprintf(buffer, "Option -%c requires an argument.\n", optopt);
-			else if (isprint (optopt))
-				sprintf(buffer, "Unknown option `-%c'.\n", optopt);
-			else
-				sprintf(buffer, "Unknown option character `\\x%x'.\n", optopt);
-
-			error(buffer);
-			
+			exit(-1);
 		default:
-			error("Unrecognized flag.");
+			print_usage();
 		}
 	}
 
-	if(!tflag)
-		error("Please specify the transcript file using the -t flag");
-
-	if(!mflag)
-		error("Please specify the miRNA file using the -m flag");
-	
-	if(!aflag)
-		error("Please specify the align file using the -a flag");
+	if(!tflag || !mflag)
+		common_usage();
 		
 	if(args->normalization && args->accessibility)
 		error("Sorry, normalization is not available when calculating accessibility scores");
 		
-	args->start_time = ctime(&mytime);
+	snprintf(args->header, sizeof args->header,
+							"gene,miRNA,cscore%s,align,reg_mechanism%s\n",
+							(args->accessibility ? ",ascore" : ""),
+							(args->annotation_file ? ",annotation" : ""));
 	
 	snprintf(args->param_info,	sizeof args->param_info,
+							"# e-value threshold: %d\n"
 							"# Complementarity threshold: %.1f\n"
 							"# Accessibility threshold: %.1f\n"
 							"# Seed region from nucleotides %u to %u\n"
 							"# Central region from nucleotides %u to %u\n"
-							"# Scoring schema - Match (%.1f) Mismatch(%.1f) Gaps(%.1f) Wobbles(%.1f)\n" 
+							"# Scoring schema - Match(%.1f) Mismatch(%.1f) Gaps(%.1f) Wobbles(%.1f)\n" 
 							"# Accessibility: %s\tNormalization: %s\tHuman readable output: %s\n\n", 
-							args->c_threshold, args->a_threshold, 
+							args->evalue, args->c_threshold, args->a_threshold, 
 							s->seed_start, s->seed_stop, 
 							s->cr_start, s->cr_stop,
 							s->match, s->mismatch, s->gap, s->wobble,
@@ -180,7 +313,7 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 	
 	args->temp_file = (char**)safe_malloc(sizeof(char*) * args->num_processors);
 	for(i = 0; i < args->num_processors; i++)
-		args->temp_file[i] = tempnam("output", "pine");
+		args->temp_file[i] = tempnam(NULL, "pine");
 		
 	return args;
 }
@@ -321,7 +454,7 @@ void normalized_prediction(fasta_info *info, pinetree_args* args, dataset_t *tds
 			int miRNA_id = aligns[i]->miRNA_id;
 			float cnorm = (aligns[i]->cscore - cmin)/cdiff;
 			
-			if(cnorm <= args->nc_threshold){
+			if(cnorm <= args->c_threshold){
 				char* align = alignment_string(align1, align2, args->sschema);
 				char* reg_mechanism = mechanism(align1, align2, args->sschema);
 				fprintf(output_file, "%s,%s,%.5f,%s,%s", tds->ids[target_id], mds->ids[miRNA_id], cnorm, align, reg_mechanism);
@@ -338,20 +471,37 @@ void normalized_prediction(fasta_info *info, pinetree_args* args, dataset_t *tds
 	}
 }
 
+StrMap* map_ids(dataset_t *d){
+	int i;
+	StrMap *map = sm_new(MAPSIZE);
+	char buf[IDSIZE];
+	
+	for(i = 0; i < d->seqn; i++) {
+		sprintf(buf, "%d", i);
+		sm_put(map, d->ids[i], buf);
+	}
+	
+	return map;
+}
+
 int main(int argc, char **argv){
 	uint j;
-	pinetree_args* args = read_cml_arguments(argc, argv);
 	
+	pinetree_args* args = read_cml_arguments(argc, argv);
 	dataset_t *tds = parse_fasta(args->transcript_file);
 	dataset_t *mds = parse_fasta(args->mirna_file);
 	
-	fasta_info *info = process_alignment(args->align_file);
-	char *header = "gene,miRNA,cscore,ascore,align,reg_mechanism\n";
+	StrMap *target_map = map_ids(tds);
+	StrMap *miRNA_map = map_ids(mds);
 	
-	if(args->annotation_file){
-		header = "gene,miRNA,cscore,ascore,align,reg_mechanism,annotation\n";
+	fasta_info *info = process_alignment(args->num_processors, args->evalue, 
+									args->mirna_file, args->transcript_file, miRNA_map, target_map);
+	
+	if(args->annotation_file)
 		annotate_targets(tds, args->annotation_file);
-	}
+	
+	sm_delete(target_map);
+	sm_delete(miRNA_map);
 	
 	/*We have to use this fork method instead of using OpenMP beacuse RNAup doesn't 
 	 * like when we use parallellize code in the outer execution... */
@@ -387,7 +537,7 @@ int main(int argc, char **argv){
 			simple_target_prediction(info, args, tds, mds);
 	}
 	
-	file_joiner(args, header);
+	file_joiner(args);
 
 	clean_alignments(info);
 	destroy_dataset(tds);

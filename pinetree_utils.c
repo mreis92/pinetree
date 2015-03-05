@@ -3,6 +3,15 @@
 
 #include "pinetree_utils.h"
 
+/* Prints the current version of the program */
+void print_version(){
+	fprintf(stderr, GREEN 
+	"\t\t%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
+	"\t\t  PINETREE: Version %.1f\n"
+	"\t\t%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
+	,RESET, VERSION);
+}
+
 /* Joins files that resulted from parallel execution in a single file */
 void file_joiner(pinetree_args* args){
 	uint i;

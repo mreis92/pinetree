@@ -21,8 +21,6 @@ typedef struct pinetree_args {
 	char header[LONGBUF];
 	float c_threshold;
 	float a_threshold;
-	float nc_threshold;
-	float na_threshold;
 	uint evalue;
 	float e_threshold;
 	uint num_errors;
@@ -32,7 +30,7 @@ typedef struct pinetree_args {
 	boolean accessibility;
 } pinetree_args;
 
-
+void print_version();
 void file_joiner(pinetree_args* args);
 
 #endif
