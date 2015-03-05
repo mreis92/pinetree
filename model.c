@@ -229,11 +229,11 @@ mirna_info_t *create_mirna_info(uint gene_seqn)
 
 	mirna_info_t *mirna = (mirna_info_t *)safe_malloc(sizeof(mirna_info_t));
 	mirna->gene_prob =
-	    (ldouble **)safe_malloc(sizeof(ldouble *) * NUM_ERRORS);
+	    (ldouble **)safe_malloc(sizeof(ldouble *) * (NUM_ERRORS+1));
 	mirna->background_prob =
-	    (ldouble *)safe_malloc(sizeof(ldouble) * NUM_ERRORS);
+	    (ldouble *)safe_malloc(sizeof(ldouble) * (NUM_ERRORS+1));
 
-	for (e = 0; e < NUM_ERRORS; e++)
+	for (e = 0; e <= NUM_ERRORS; e++)
 		mirna->gene_prob[e] =
 		    (ldouble *)safe_malloc(sizeof(ldouble) * gene_seqn);
 
@@ -257,7 +257,7 @@ mirnas_info_t *create_mirnas_info(uint seqn, uint gene_seqn)
 void destroy_mirna_info(mirna_info_t * mirna)
 {
 	int e;
-	for (e = 0; e < NUM_ERRORS; e++)
+	for (e = 0; e <= NUM_ERRORS; e++)
 		safe_free(mirna->gene_prob[e]);
 
 	safe_free(mirna->gene_prob);

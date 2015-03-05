@@ -13,15 +13,14 @@
 #define SEED_STOP 12
 #define CR_START 9
 #define CR_STOP 11
-#define NUM_ERRORS 1
-#define MARKOV_ORDER 6 
-#define EVALUE 150
+#define NUM_ERRORS 0
+#define MARKOV_ORDER 3
+#define EVALUE 40
 #define C_THRESHOLD 3.5
 #define A_THRESHOLD 15.5
 #define E_THRESHOLD 7
 
-/* If you want to allow N errors in your sequences, define NUM_ERRORS as N+1 */
-#define NUM_ERRORS 1
+#define PSEUDOCOUNTS 0.001
 
 /* Default size for strings */
 #define LONGBUF 1024
@@ -36,5 +35,24 @@
 #define _G_ 3
 #define _N_ 4
 #define NUCLEOTIDES 4
+
+/* Constants for pretty print */
+#define RESET   "\033[0m"
+#define BLACK   "\033[30m"      /* Black */
+#define RED     "\033[31m"      /* Red */
+#define GREEN   "\033[32m"      /* Green */
+#define YELLOW  "\033[33m"      /* Yellow */
+#define BLUE    "\033[34m"      /* Blue */
+#define MAGENTA "\033[35m"      /* Magenta */
+#define CYAN    "\033[36m"      /* Cyan */
+#define WHITE   "\033[37m"      /* White */
+#define BOLDBLACK   "\033[1m\033[30m"      /* Bold Black */
+#define BOLDRED     "\033[1m\033[31m"      /* Bold Red */
+#define BOLDGREEN   "\033[1m\033[32m"      /* Bold Green */
+#define BOLDYELLOW  "\033[1m\033[33m"      /* Bold Yellow */
+#define BOLDBLUE    "\033[1m\033[34m"      /* Bold Blue */
+#define BOLDMAGENTA "\033[1m\033[35m"      /* Bold Magenta */
+#define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
+#define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
 
 #endif

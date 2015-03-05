@@ -35,14 +35,18 @@ ldouble monad_errors(stat_model_t * model, char *seq, uint num_errors, int offse
 	return probability;
 }
 
-uint count_errors(llint a, llint b, int order){
+uint count_errors(llint a, llint b, int order, uint num_errors){
 	int i;
 	uint errors = 0;
 	
 	for(i = 0; i < order; i++){
-		if((a&0b11)!=(b&0b11))
+		if((a&0b11)!=(b&0b11)){
 			errors++;
 		
+			if(errors > num_errors)
+				return errors;
+		}
+			
 		a>>=2;
 		b>>=2;
 	}
@@ -72,7 +76,7 @@ ldouble prob_monad_errors(stat_model_t * model, char *seq, uint num_errors){
 	}
 
 	for (i = 0; i < entries; i++) {
-		uint errors = count_errors(i, current, model->markov_order); /*TODO: Break if number of errors exceeded */
+		uint errors = count_errors(i, current, model->markov_order, num_errors); 
 		
 		if((errors > 0) && (errors <= num_errors))
 			probability += model->p[i] * monad_errors(model, seq, num_errors-errors, model->markov_order, limit, i, mask);
@@ -90,7 +94,7 @@ void prob_score(stat_model_t * background_model, stat_models_t * gene_models, mi
 	uint i, j, e;
 	omp_set_num_threads(np);
 
-	for (e = 0; e < NUM_ERRORS; e++) {
+	for (e = 0; e <= NUM_ERRORS; e++) {
 		#pragma omp parallel for private(j)
 		for (i = 0; i < mirnas->seqn; i++) {
 			mirnas->mirna[i]->background_prob[e] = prob_monad_errors(background_model, mirnas->mirna[i]->sequence, e);

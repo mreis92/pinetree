@@ -1,14 +1,11 @@
 #ifndef MODEL_H
 #define MODEL_H
 
+#include "constants.h"
 #include "dataset.h"
 #include "fasta.h"
 #include "types.h"
 #include "util.h"
-
-/* If you want to allow N errors in your sequences, define NUM_ERRORS as N+1 */
-#define NUM_ERRORS 1
-#define PSEUDOCOUNTS 0.001
 
 /* A statistical model that contain the Markov chains of order 0 and 1 for a given sequence */
 typedef struct stat_model_t {
