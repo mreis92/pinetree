@@ -7,39 +7,89 @@
 #define CENTRAL_REGION(n,i,g,s) ((n-i-g >= s->cr_start && n-i-g <= s->cr_stop) ? 1 : 0)
 #define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
 
-/* Read the file containing the results of FASTA execution */
-fasta_info *process_alignment(char* filename){
-	fasta_info *info;
-	fasta_align **aligns;
-	int miRNA_id, target_id;
-	char miRNA_seq[BUFSIZE], target_seq[BUFSIZE];
-	int start;
-	int num_entries = 0;
-	
-	FILE *file = safe_fopen(filename, "r");
-	int count = 0; 
-	
-	fscanf(file,"%d\n", &num_entries);
-	
-	info = (fasta_info*) safe_malloc(sizeof(fasta_info));
-	aligns = (fasta_align**) safe_malloc(sizeof(fasta_align*)*num_entries);
+/* A large number for the entries in the fasta file */
+#define ENTRIES 10000 
 
-	/* skip header */
-	safe_free(get_string(file, BUFSIZE)); 
+/* Read the file containing the results of FASTA execution */
+fasta_info *process_alignment(uint nproc, uint evalue, char* mirna, char* transcript, StrMap *miRNA_map, StrMap *target_map){
+	FILE *file;
+	char command[LONGBUF], line[LONGBUF];
+	char miRNA_id[BUFSIZE], target_id[BUFSIZE];
+	char miRNA_seq[BUFSIZE], target_seq[BUFSIZE];
+	char miRNA_code[IDSIZE], target_code[IDSIZE];
+	int c, miRNA_len, offset;
+	int start;
+	int count = 0; 
+	int entries = ENTRIES;
+	fasta_info *info = (fasta_info*) safe_malloc(sizeof(fasta_info));
+	fasta_align **aligns = (fasta_align**) safe_malloc(sizeof(fasta_align*)*entries);
 	
-	while (fscanf(file,"%d,%d,%d,%[^,],%s\n", &miRNA_id,&target_id,&start,miRNA_seq, target_seq) != EOF){
-		aligns[count] = (fasta_align*) safe_malloc(sizeof(fasta_align));
+	snprintf(command, sizeof(command), "fasta36 -T %u -q -n -E %u %s %s 1", 
+	nproc, evalue, mirna, transcript);
+	
+	file = safe_popen(command, "r");
+	
+	while (fgets (line, sizeof(line), file)) {
+		if(line[3] == '>' && line[4] == '>' && line[5] == '>'){
+			sscanf(line, "%*[^>]>>>%s", miRNA_id);
+			sm_get(miRNA_map, miRNA_id, miRNA_code, sizeof(miRNA_code));
+		}
 		
-		aligns[count]->miRNA_id = miRNA_id;
-		aligns[count]->target_id = target_id;
-		aligns[count]->start = start;
-		aligns[count]->target_seq = strdup(target_seq);
-		aligns[count]->miRNA_seq = strdup(miRNA_seq);
-		
-		count++;
+		if(line[0] == '>' && line[1] == '>'){
+			aligns[count] = (fasta_align*) safe_malloc(sizeof(fasta_align));
+			sscanf(line, ">>%s", target_id);
+			sm_get(target_map, target_id, target_code, sizeof(target_code));
+			
+			fgets(line, sizeof(line), file); /* skip one line */
+			fgets(line, sizeof(line), file);
+			sscanf(line, "%*[^(](%*[^(](%*d-%*d:%d", &start);
+			
+			fgets(line, sizeof(line), file); /* skip */
+			fgets(line, sizeof(line), file); /* skip */
+			fgets(line, sizeof(line), file);
+			
+			for(c = 7; c < strlen(line); c++){
+				if(line[c] != ' '){
+					offset = c;
+					while(c < strlen(line) && line[c++] != ' ');
+					
+					break;
+				}
+			}
+					
+			miRNA_len = c-offset;
+			snprintf(miRNA_seq, miRNA_len, "%s", line + offset);
+			
+			fgets(line, sizeof(line), file);
+			
+			for(c = offset; c < strlen(line); c++){
+				if(line[c] != ' ')
+					break;
+					
+				start -= 1;
+			}
+				
+			if(start < 0)
+				start = 0;
+			
+			fgets(line, sizeof(line), file);
+			snprintf(target_seq, miRNA_len, "%s", line + offset);
+			
+			aligns[count]->miRNA_id = atoi(miRNA_code);
+			aligns[count]->target_id = atoi(target_code);
+			aligns[count]->start = start;
+			aligns[count]->target_seq = strdup(target_seq);
+			aligns[count]->miRNA_seq = strdup(miRNA_seq);
+			count++;
+			
+			if(count >= entries)
+				aligns = safe_realloc(aligns, sizeof(fasta_align*) * (entries <<= 1));
+			
+		}
 	}
 	
-	safe_fclose(file);
+	aligns = safe_realloc(aligns, sizeof(fasta_align*) * (count-1));
+	safe_pclose(file);
 	
 	info->aligns = aligns;
 	info->count = count;
@@ -186,7 +236,7 @@ char* alignment_string(char* align1, char* align2, score_t *smodel){
 
 /* Creates the structure that represents a scoring schema */
 score_t *create_score_schema(float match, float mismatch, float gap, float wobble,
-		     float seed_penalty, uint seed_start, uint seed_stop, uint cr_start, uint cr_stop)
+		     uint seed_start, uint seed_stop, uint cr_start, uint cr_stop)
 {
 	score_t *model = NULL;
 	int i = 0, j = 0;
@@ -194,7 +244,6 @@ score_t *create_score_schema(float match, float mismatch, float gap, float wobbl
 
 	model = (score_t *) safe_malloc(sizeof(score_t));
 	model->gap = gap;
-	model->seed_penalty = seed_penalty;
 	model->match = match;
 	model->mismatch = mismatch;
 	model->wobble = wobble;
