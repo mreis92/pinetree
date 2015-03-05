@@ -8,7 +8,7 @@
 #define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
 
 /* A large number for the entries in the fasta file */
-#define ENTRIES 10000 
+#define ENTRIES 50000 
 
 /* Read the file containing the results of FASTA execution */
 fasta_info *process_alignment(uint nproc, uint evalue, char* mirna, char* transcript, StrMap *miRNA_map, StrMap *target_map){
