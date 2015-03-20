@@ -108,7 +108,7 @@ void prob_score(stat_model_t * background_model, stat_models_t * gene_models, mi
 }
 
 /* Prints the scores for each miRNA against the background and genes */
-ldouble calculate_escore(evo_info_t* evo_info, int mirna_id, int gene_id)
+ldouble calculate_affinity(evo_info_t* evo_info, int mirna_id, int gene_id)
 {
 	ldouble background_prob, gene_prob;
 

@@ -94,7 +94,7 @@ void print_usage(){
 		BOLDWHITE "-C, --config [file]\n" RESET 
 		"\tindicates where the path of the CONFIG file\n"
 		BOLDWHITE "-e, --e_cut [value]\n" RESET 
-		"\tcutoff value for the anti-target criterion\n"
+		"\tcutoff value for the miRNA:mRNA affinity\n"
 		BOLDWHITE "-h, --help\n" RESET 
 		"\tdetailed information about the command-line options\n"
 		BOLDWHITE "-o, --output [file name]\n" RESET 
@@ -194,11 +194,11 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 		common_usage();
 		
 	snprintf(args->header, sizeof args->header,
-							"gene,miRNA,escore%s\n",
+							"gene,miRNA,affinity%s\n",
 							(args->annotation_file ? ",annotation" : ""));
 		
 	snprintf(args->param_info,	sizeof args->param_info,
-							"# Evolutionary threshold: %.1f\n"
+							"# miRNA:mRNA affinity threshold: %.1f\n"
 							"# Markov order: %u\n"
 							"# Number of errors allowed: %u\n"
 							"# Human readable output: %s\n\n",
@@ -236,7 +236,7 @@ int main(int argc, char **argv){
 		#pragma omp for 
 		for (i = 0; i < tds->seqn; i++) {
 			for(j = 0; j < mds->seqn; j++){
-				ldouble escore = calculate_escore(evo_info, j, i);
+				ldouble affinity = calculate_affinity(evo_info, j, i);
 				
 				if(args->human_output){
 					fprintf(output_file, "target id: %s\n", tds->ids[i]);
@@ -244,11 +244,11 @@ int main(int argc, char **argv){
 						fprintf(output_file, "target info: %s\n", tds->annotations[i] ? tds->annotations[i] : "N/A");
 						
 					fprintf(output_file, "miRNA id: %s\n", mds->ids[j]);
-					fprintf(output_file, "Evolutionary score: %Lg\n", escore);
+					fprintf(output_file, "miRNA:mRNA affinity: %Lg\n", affinity);
 					fprintf(output_file, "#\n");
 				}	
 				else {
-					fprintf(output_file, "%s,%s,%Lg", tds->ids[i], mds->ids[j], escore);
+					fprintf(output_file, "%s,%s,%Lg", tds->ids[i], mds->ids[j], affinity);
 					
 					if(tds->annotations)
 						fprintf(output_file, ",%s", tds->annotations[i] ? tds->annotations[i] : "N/A");
