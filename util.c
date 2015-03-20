@@ -6,6 +6,12 @@
 
 #include "util.h"
 
+/* Prints error message to console and aborts execution */
+void error(char *message){
+	fprintf(stderr, "Error: %s\n", message);
+	exit(-1);
+}
+
 /* Safely allocates memory of space given by size */
 void *safe_malloc(size_t size)
 {
@@ -106,6 +112,12 @@ void safe_remove(char *filename) {
 	
 	if(status)
 		error("Cannot remove file.");
+}
+
+/* Safely reads a line */
+void safe_fgets(char *s, int size, FILE *stream){
+	if(fgets(s, size, stream) == NULL)
+		error("gets read an empty line!");
 }
 
 /* Returns a string with current system time */
@@ -307,6 +319,23 @@ char *get_string(FILE * fp, uint size)
 	return safe_realloc(str, sizeof(char) * len);
 }
 
+/* Creates a file with a unique filename. */
+char* create_unique_file(char* template){
+	int fd;
+	char buffer[BUFSIZE];
+	strncpy(buffer, template, sizeof buffer);
+
+	fd = mkstemp(buffer);
+
+	if(fd != -1)
+		close(fd);
+	else
+		error("Could not create unique file");
+
+	return strdup(buffer);
+
+}
+
 /* Concatenates str2 to str1 */
 char *str_concat(char *str1, char *str2)
 {
@@ -348,10 +377,3 @@ int count_occurrences(char *string, char c){
 
 	return count;
 }
-
-/* Prints error message to console and aborts execution */
-void error(char *message){
-	fprintf(stderr, "Error: %s\n", message);
-	exit(-1);
-}
-
