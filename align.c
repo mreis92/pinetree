@@ -24,7 +24,7 @@ fasta_info *process_alignment(uint nproc, uint evalue, char* mirna, char* transc
 	fasta_info *info = (fasta_info*) safe_malloc(sizeof(fasta_info));
 	fasta_align **aligns = (fasta_align**) safe_malloc(sizeof(fasta_align*)*entries);
 	
-	snprintf(command, sizeof(command), "fasta36 -T %u -q -n -E %u %s %s 1", 
+	snprintf(command, sizeof(command), "./fasta36 -T %u -q -n -E %u %s %s 1", 
 	nproc, evalue, mirna, transcript);
 	
 	file = safe_popen(command, "r");
@@ -40,13 +40,13 @@ fasta_info *process_alignment(uint nproc, uint evalue, char* mirna, char* transc
 			sscanf(line, ">>%s", target_id);
 			sm_get(target_map, target_id, target_code, sizeof(target_code));
 			
-			fgets(line, sizeof(line), file); /* skip one line */
-			fgets(line, sizeof(line), file);
+			safe_fgets(line, sizeof(line), file); /* skip one line */
+			safe_fgets(line, sizeof(line), file);
 			sscanf(line, "%*[^(](%*[^(](%*d-%*d:%d", &start);
 			
-			fgets(line, sizeof(line), file); /* skip */
-			fgets(line, sizeof(line), file); /* skip */
-			fgets(line, sizeof(line), file);
+			safe_fgets(line, sizeof(line), file); /* skip */
+			safe_fgets(line, sizeof(line), file); /* skip */
+			safe_fgets(line, sizeof(line), file);
 			
 			for(c = 7; c < strlen(line); c++){
 				if(line[c] != ' '){
@@ -60,7 +60,7 @@ fasta_info *process_alignment(uint nproc, uint evalue, char* mirna, char* transc
 			miRNA_len = c-offset;
 			snprintf(miRNA_seq, miRNA_len, "%s", line + offset);
 			
-			fgets(line, sizeof(line), file);
+			safe_fgets(line, sizeof(line), file);
 			
 			for(c = offset; c < strlen(line); c++){
 				if(line[c] != ' ')
@@ -72,7 +72,7 @@ fasta_info *process_alignment(uint nproc, uint evalue, char* mirna, char* transc
 			if(start < 0)
 				start = 0;
 			
-			fgets(line, sizeof(line), file);
+			safe_fgets(line, sizeof(line), file);
 			snprintf(target_seq, miRNA_len, "%s", line + offset);
 			
 			aligns[count]->miRNA_id = atoi(miRNA_code);
