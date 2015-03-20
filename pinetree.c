@@ -312,8 +312,10 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 							(args->normalization ? "Yes" : "No"), (args->human_output ? "Yes" : "No"));
 	
 	args->temp_file = (char**)safe_malloc(sizeof(char*) * args->num_processors);
-	for(i = 0; i < args->num_processors; i++)
-		args->temp_file[i] = tempnam(NULL, "pine");
+	for(i = 0; i < args->num_processors; i++){
+		char *temp_file = create_unique_file("/tmp/pinetree_XXXXXX");
+		args->temp_file[i] = temp_file;
+	}
 		
 	return args;
 }
@@ -375,7 +377,6 @@ void simple_target_prediction(fasta_info *info, pinetree_args* args, dataset_t *
 	
 	#pragma omp parallel num_threads(args->num_processors)
 	{
-		/*FIXME: use O_EXCL */
 		FILE *output_file = safe_fopen(args->temp_file[omp_get_thread_num()], "w");
 		
 		#pragma omp for 
