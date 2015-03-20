@@ -1,5 +1,5 @@
-#for parallel execution
-NUM_PROC=20
+#number of processors
+NUM_PROCESSORS=1
 
 #scoring schema for complementarity
 MATCH=1

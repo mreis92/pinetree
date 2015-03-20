@@ -4,7 +4,7 @@
 #define VERSION 1.0
 
 /*Program execution constants */
-#define NUM_PROCESSORS 20
+#define NUM_PROCESSORS 1
 #define GAP -1
 #define MATCH 1
 #define MISMATCH -1
