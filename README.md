@@ -9,13 +9,14 @@ bash configure.sh
 
 To run the search program, simply type:
 
-bash pinetree.sh -t path/to/transcript/file -m path/to/mirna/file
+./pinetree -t path/to/transcript/file -m path/to/mirna/file
 
 To run the anti-target scoring program, type:
 
-bash pinetree_evo.sh -t path/to/transcript/file -m path/to/mirna/file
+./pinetree_evo -t path/to/transcript/file -m path/to/mirna/file
 
 You can modify other parameters directly in the script, or using the CONFIG file.
 If you need more information on the parameters you can use, simply type:
 
-bash pinetree*.sh -h
+./pinetree* -h
+
