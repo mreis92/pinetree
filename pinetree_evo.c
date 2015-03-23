@@ -70,11 +70,7 @@ int main(int argc, char **argv){
 	cleanup(evo_info); 
 	destroy_dataset(tds);
 	destroy_dataset(mds);
-	
-	for(proc = 0; proc < args->num_processors; proc++)
-		safe_free(args->temp_file[proc]);
 		
-	safe_free(args->temp_file);
 	safe_free(args);
 
 	return 0;
