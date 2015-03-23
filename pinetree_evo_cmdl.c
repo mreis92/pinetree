@@ -11,7 +11,7 @@ pinetree_args *initialize_args(){
 	args->num_processors = NUM_PROCESSORS;
 	args->transcript_file = NULL;
 	args->mirna_file = NULL;
-	args->output_file = "pinetree";
+	args->output_file = "pinetree_evo";
 	args->annotation_file = NULL;
 	args->e_threshold = E_THRESHOLD;
 	args->num_errors = NUM_ERRORS;
