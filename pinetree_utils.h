@@ -5,6 +5,8 @@
 
 #include "align.h"
 #include "constants.h"
+#include "dataset.h"
+#include "strmap.h"
 #include "types.h"
 #include "util.h"
 
@@ -30,6 +32,7 @@ typedef struct pinetree_args {
 	boolean accessibility;
 } pinetree_args;
 
+StrMap* map_ids(dataset_t *d);
 void print_version();
 void file_joiner(pinetree_args* args);
 

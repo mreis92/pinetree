@@ -3,6 +3,21 @@
 
 #include "pinetree_utils.h"
 
+#define MAPSIZE 50000
+
+StrMap* map_ids(dataset_t *d){
+	int i;
+	StrMap *map = sm_new(MAPSIZE);
+	char buf[IDSIZE];
+	
+	for(i = 0; i < d->seqn; i++) {
+		sprintf(buf, "%d", i);
+		sm_put(map, d->ids[i], buf);
+	}
+	
+	return map;
+}
+
 /* Prints the current version of the program */
 void print_version(){
 	fprintf(stderr, GREEN 
@@ -50,6 +65,8 @@ void file_joiner(pinetree_args* args){
 		safe_remove(args->temp_file[i]); /* Deleting temporary file */
 		safe_free(args->temp_file[i]);
 	}
+
+	safe_free(args->temp_file);
 	
 	safe_fclose(output_file);
 }
