@@ -75,6 +75,7 @@ fasta_info *process_alignment(uint nproc, uint evalue, char* mirna, char* transc
 			safe_fgets(line, sizeof(line), file);
 			snprintf(target_seq, miRNA_len, "%s", line + offset);
 			
+			aligns[count]->ascore = 0;
 			aligns[count]->miRNA_id = atoi(miRNA_code);
 			aligns[count]->target_id = atoi(target_code);
 			aligns[count]->start = start;
@@ -88,7 +89,7 @@ fasta_info *process_alignment(uint nproc, uint evalue, char* mirna, char* transc
 		}
 	}
 	
-	aligns = safe_realloc(aligns, sizeof(fasta_align*) * (count-1));
+	aligns = safe_realloc(aligns, sizeof(fasta_align*) * (count));
 	safe_pclose(file);
 	
 	info->aligns = aligns;
