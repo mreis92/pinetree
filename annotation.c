@@ -4,25 +4,11 @@
 
 #include "annotation.h"
 
-/* Maps the string id into its position in the data structure */
-StrMap *map_targets(dataset_t *tds){
-	uint i;
-	char id[IDSIZE];
-	StrMap * map = sm_new(tds->seqn*3);
-	
-	for(i = 0; i < tds->seqn; i++){
-		sprintf(id, "%d", i);
-		sm_put(map, tds->ids[i], id);
-	}
-	
-	return map;
-}
 
 /* Annotates an existing dataset with transcript specific information */
-void annotate_targets(dataset_t *tds, char* filename){
+void annotate_targets(dataset_t *tds, StrMap *id_map, char* filename){
 	char gene_id[BUFSIZE], description[LONGBUF];
 	char id[IDSIZE];
-	StrMap *id_map = map_targets(tds);
 	FILE *annotation_file = safe_fopen(filename, "r");
 	
 	tds->annotations = (char**)safe_calloc(tds->seqn, sizeof(char*));

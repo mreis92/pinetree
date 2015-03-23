@@ -8,6 +8,6 @@
 #include "strmap.h"
 #include "util.h"
 
-void annotate_targets(dataset_t *tds, char* annotation_file);
+void annotate_targets(dataset_t *tds, StrMap* id_map, char* annotation_file);
 
 #endif
