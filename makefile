@@ -13,25 +13,21 @@ EXE = pinetree
 EXE_EVO = pinetree_evo
 
 FILES = annotation.c dataset.c fasta.c pinetree_utils.c strmap.c util.c   
-PFILES = pinetree.c accessibility.c align.c RNAup_cmdl.c RNAplfold_cmdl.c RNAup.c RNAplfold.c 
-EFILES = model.c evo.c pinetree_evo.c
+PFILES = pinetree.c pinetree_cmdl.c accessibility.c align.c RNAup.c RNAup_cmdl.c 
+EFILES = model.c evo.c pinetree_evo.c pinetree_evo_cmdl.c
 
 VER=1.0
 
 pinetree: 
-	export OMP_NUM_THREADS=4
 	$(CC) $(OPT) $(OMP) $(FILES) $(PFILES) -o $(EXE) -I$(RNAHEADERS) -L$(RNALIB) $(LIBS)
 	
 evo: 
-	export OMP_NUM_THREADS=4
 	$(CC) $(OPT) $(OMP) $(FILES) $(EFILES) -o $(EXE_EVO) -L. -lm
 
 debug:
-	export OMP_NUM_THREADS=1
 	$(CC) $(DEBUG) $(OMP) $(FILES) $(PFILES) -o $(EXE) -I$(RNAHEADERS) -L$(RNALIB) $(LIBS)
 	
 debug_evo:
-	export OMP_NUM_THREADS=1
 	$(CC) $(DEBUG) $(OMP) $(FILES) $(EFILES) -o $(EXE_EVO) -L. -lm
 
 all: pinetree evo
