@@ -9,9 +9,9 @@
 
 /* Recursive function for calculation of the probability appearing 
 	in the Markov chain of a statistical model */
-ldouble monad_errors(stat_model_t * model, char *seq, uint num_errors, int offset, int limit, llint previous, llint mask){
+float monad_errors(stat_model_t * model, char *seq, uint num_errors, int offset, int limit, llint previous, llint mask){
 	int i;
-	ldouble probability = 0;
+	float probability = 0;
 	int temp = (bin_code(seq[offset]))&0b011;
 	
 	if (offset < limit) {
@@ -55,9 +55,9 @@ uint count_errors(llint a, llint b, int order, uint num_errors){
 	
 }
 /* Calculates the probability of a sequence appearing in the Markov chain given by "model", up to "num_errors" */
-ldouble prob_monad_errors(stat_model_t * model, char *seq, uint num_errors){
+float prob_monad_errors(stat_model_t * model, char *seq, uint num_errors){
 	llint i, current = 0, mask = 0;
-	ldouble probability = 0;
+	float probability = 0;
 	int limit = strlen(seq) - 1;
 	int entries = model->entries-1;
 	int stop = model->markov_order;
@@ -108,9 +108,9 @@ void prob_score(stat_model_t * background_model, stat_models_t * gene_models, mi
 }
 
 /* Prints the scores for each miRNA against the background and genes */
-ldouble calculate_affinity(evo_info_t* evo_info, int mirna_id, int gene_id)
+float calculate_affinity(evo_info_t* evo_info, int mirna_id, int gene_id)
 {
-	ldouble background_prob, gene_prob;
+	float background_prob, gene_prob;
 
 	background_prob = evo_info->mirnas->mirna[mirna_id]->background_prob[0];
 	gene_prob = evo_info->mirnas->mirna[mirna_id]->gene_prob[0][gene_id];

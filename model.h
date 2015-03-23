@@ -11,8 +11,8 @@
 typedef struct stat_model_t {
 	uint markov_order;
 	uint entries;
-	ldouble *p;
-	ldouble **A;
+	float *p;
+	float **A;
 } stat_model_t;
 
 /* A set of statistical models, with an id associated with each model */
@@ -28,8 +28,8 @@ typedef struct mirna_info_t {
 	char *sequence;
 	char *id;
 	uint length;
-	ldouble *background_prob;
-	ldouble **gene_prob;
+	float *background_prob;
+	float **gene_prob;
 
 } mirna_info_t;
 

@@ -12,11 +12,11 @@ stat_model_t *create_model(int markov_order){
 	stat_model_t *model = (stat_model_t *)safe_malloc(sizeof(stat_model_t));
 	model->markov_order = markov_order;
 	model->entries = pow(NUCLEOTIDES,markov_order)+1;
-	model->p = (ldouble*)safe_calloc(model->entries, sizeof(ldouble));
-	model->A = (ldouble**)safe_malloc(sizeof(ldouble*) * model->entries);
+	model->p = (float*)safe_calloc(model->entries, sizeof(float));
+	model->A = (float**)safe_malloc(sizeof(float*) * model->entries);
 	
 	for(i = 0; i < model->entries; i++){
-		model->A[i] = (ldouble*)safe_calloc(NUCLEOTIDES+1, sizeof(ldouble));
+		model->A[i] = (float*)safe_calloc(NUCLEOTIDES+1, sizeof(float));
 	}
 	
 	return model;
@@ -154,13 +154,13 @@ void normalize_model(stat_model_t * model){
 	pseudocounts(model);
 
 	for (i = 0; i < count_index; i++) {
-		model->p[i] = model->p[i] / model->p[count_index];
+		model->p[i] /= model->p[count_index];
 	}
 
 	
 	for (i = 0; i < count_index; i++) {
 		for(j = 0; j < NUCLEOTIDES; j++){
-			model->A[i][j] = model->A[i][j] / model->A[i][_N_];
+			model->A[i][j] /= model->A[i][_N_];
 		}
 	}
 }
@@ -199,7 +199,7 @@ void print_model(stat_model_t * model){
 		}
 		previous[model->markov_order] = '\0';
 			
-		printf("p(%s) = %Lg\n", previous, model->p[i]);
+		printf("p(%s) = %f\n", previous, model->p[i]);
 	}
 
 	for (i = 0; i < count_index; i++) {
@@ -212,7 +212,7 @@ void print_model(stat_model_t * model){
 		previous[model->markov_order] = '\0';
 		
 		for (j = 0; j < NUCLEOTIDES; j++) {
-			printf("p(%s)(%c) = %Lg\n", previous, char_code(j), model->A[i][j]);
+			printf("p(%s)(%c) = %f\n", previous, char_code(j), model->A[i][j]);
 		}
 	}
 	printf("\n");
@@ -229,13 +229,13 @@ mirna_info_t *create_mirna_info(uint gene_seqn)
 
 	mirna_info_t *mirna = (mirna_info_t *)safe_malloc(sizeof(mirna_info_t));
 	mirna->gene_prob =
-	    (ldouble **)safe_malloc(sizeof(ldouble *) * (NUM_ERRORS+1));
+	    (float **)safe_malloc(sizeof(float *) * (NUM_ERRORS+1));
 	mirna->background_prob =
-	    (ldouble *)safe_malloc(sizeof(ldouble) * (NUM_ERRORS+1));
+	    (float *)safe_malloc(sizeof(float) * (NUM_ERRORS+1));
 
 	for (e = 0; e <= NUM_ERRORS; e++)
 		mirna->gene_prob[e] =
-		    (ldouble *)safe_malloc(sizeof(ldouble) * gene_seqn);
+		    (float *)safe_malloc(sizeof(float) * gene_seqn);
 
 	return mirna;
 }
