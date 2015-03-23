@@ -38,32 +38,9 @@ double calculate_accessibility(char* mode, char *gene_seq, int start, int align_
 
 	if(!strcmp(mode, "RNAup"))
 		return accessibility_RNAup(seq, align_length, up_flank+align_length);
-	else if(!strcmp(mode, "RNAplfold"))
-		return accessibility_RNAplfold(seq, align_length, up_flank+down_flank);
 	else 
 		error("Unrecognized accessibility mode.");
 }
-
-double accessibility_RNAplfold(char *seq, int region, int flanks){
-	char 	program[] = "RNAplfold";
-	char  	open_en[] = "-O";
-	char  	region_flag[] = "-u";
-	char  	window_flag[] = "-W";
-	char  	region_length[4]; 
-	char 	window_length[5];
-	sprintf(region_length, "%d", region+UPSTREAM+DOWNSTREAM);
-	sprintf(window_length, "%d", region+UPSTREAM+DOWNSTREAM);
-	char* 	argv[] = { &program[0], &open_en[0], &region_flag[0], &region_length[0], &window_flag[0], &window_length[0], NULL };
-   	int 	argc    = (int)(sizeof(argv) / sizeof(argv[0])) - 1;
-	return RNAplfold(argc, argv, NULL, seq, region, flanks);
-}
-
-/*
-double accessibility_RNAhybrid(char *gene, char* mirna){
-	double score = rnahybrid(gene, mirna, 2.38, 0.19, 10, 5);
-	safe_free(gene);
-	return score;
-}*/
 
 double accessibility_RNAup(char *gene, int region, int end_pos){
 	char 	program[] = "RNAup";

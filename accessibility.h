@@ -5,7 +5,6 @@
 
 #include "util.h"
 #include "RNAup.h"
-#include "RNAplfold.h"
 
 #define UPSTREAM 17
 #define DOWNSTREAM 13
@@ -14,8 +13,6 @@
 
 double calculate_accessibility(char* mode, char *gene_seq, int start, int align_length);
 double accessibility_RNAup(char *gene, int region, int end_pos);
-double accessibility_RNAplfold(char *seq, int region, int flanks);
-/*double accessibility_RNAhybrid(char* gene, char* mirna);*/
 
 #endif
 
