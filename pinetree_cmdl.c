@@ -14,8 +14,8 @@ pinetree_args *initialize_args(){
 	args->mirna_file = NULL;
 	args->output_file = "pinetree";
 	args->annotation_file = NULL;
-	args->c_threshold = C_THRESHOLD;
-	args->a_threshold = A_THRESHOLD;
+	args->c_threshold = NC_THRESHOLD;
+	args->a_threshold = NA_THRESHOLD;
 	args->evalue = EVALUE;
 	args->accessibility = 0;
 	args->normalization = 1;
@@ -146,7 +146,8 @@ void print_usage(){
 
 pinetree_args* read_cml_arguments(int argc, char **argv){
 	int i, c;
-	int tflag = 0, mflag = 0;
+	boolean tflag = 0, mflag = 0;
+	boolean aflag = 0, cflag = 0;
 	char *config_file = NULL;
 	pinetree_args *args = initialize_args();
 	score_t *s = args->sschema;
@@ -191,6 +192,7 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 		switch (c){
 		case 'a':
 			args->a_threshold = atof(optarg);
+			aflag = 1;
 			break;
 		case 'A':
 			args->annotation_file = optarg;
@@ -200,6 +202,7 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 			break;
 		case 'c':
 			args->c_threshold = atof(optarg);
+			cflag = 1;
 			break;
 		case 'C':
 			config_file = optarg;
@@ -219,7 +222,11 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 			break;
 		case 'n':
 			args->normalization = 0;
-			break;
+			if(!aflag)
+				args->a_threshold = A_THRESHOLD;
+			if(!cflag)
+				args->c_threshold = C_THRESHOLD;
+				break;
 		case 'o':
 			args->output_file = optarg;
 			break;

@@ -151,17 +151,20 @@ void calc_acc_values(pinetree_args *args, fasta_align *cur_align, uint current, 
 	int start = cur_align->start;
  	int length = strlen(mds->sequences[mid]) - count_occurrences(seq1, '-');
 	
-	float cscore = align_score(seq1, seq2, args->sschema);
-	
-	if(cscore <= args->c_threshold){
-		double ascore = calculate_accessibility("RNAup", tds->sequences[tid], start, length);
+	if(!args->normalization){
+		float cscore = align_score(seq1, seq2, args->sschema);
 
-		/* FIXME */
-		if(ascore == INFINITY)
-			ascore = 25;
-
-		fprintf(temp_file, "%d,%.1f\n", current, ascore);
+		if(cscore > args->c_threshold)
+			return;
 	}
+
+	double ascore = calculate_accessibility("RNAup", tds->sequences[tid], start, length);
+
+	/* FIXME */
+	if(ascore == INFINITY)
+		ascore = 25;
+
+	fprintf(temp_file, "%d,%.1f\n", current, ascore);
 }
 
 void load_acc_values(pinetree_args *args, fasta_align **aligns){
