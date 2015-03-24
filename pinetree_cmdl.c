@@ -18,7 +18,7 @@ pinetree_args *initialize_args(){
 	args->a_threshold = A_THRESHOLD;
 	args->evalue = EVALUE;
 	args->accessibility = 0;
-	args->normalization = 0;
+	args->normalization = 1;
 	args->human_output = 0;
 	
 	return args;
@@ -78,8 +78,8 @@ void common_usage(){
 		"\tturns on accessibility mode\n"
 		BOLDWHITE "-h, --help\n" RESET 
 		"\tdetailed information about the command-line options\n"
-		BOLDWHITE "-n, --normalization\n" RESET 
-		"\tnormalize scores between 0 and 1 \n"
+		BOLDWHITE "-n, --no_normalization\n" RESET 
+		"\tturns off normalization mode \n"
 		BOLDWHITE "-o, --output [file name]\n" RESET 
 		"\tname of the file where the output os stored (e.g -o pinetree)\n"
 		BOLDWHITE "-p --processors\n" RESET 
@@ -112,8 +112,8 @@ void print_usage(){
 		"\tcutoff value for the e-value parameter of FASTA\n"
 		BOLDWHITE "-h, --help\n" RESET 
 		"\tdetailed information about the command-line options\n"
-		BOLDWHITE "-n, --normalization\n" RESET 
-		"\tnormalize scores between 0 and 1 \n"
+		BOLDWHITE "-n, --no_normalization\n" RESET 
+		"\tturns off normalization mode \n"
 		BOLDWHITE "-o, --output [file name]\n" RESET 
 		"\tname of the file where the output os stored (e.g -o pinetree)\n"
 		BOLDWHITE "-p --processors\n" RESET 
@@ -169,7 +169,7 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 			{"match",  required_argument, 0, 'u'},
 			{"mismatch",  required_argument, 0, 'y'},
 			{"mirna",  required_argument, 0, 'm'},
-			{"normalization", no_argument, 0, 'n'},
+			{"no_normalization", no_argument, 0, 'n'},
 			{"output",  required_argument, 0, 'o'},
 			{"pretty",  no_argument, 0, 'P'},
 			{"processors",  required_argument, 0, 'p'},
@@ -218,7 +218,7 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 			args->mirna_file = optarg;
 			break;
 		case 'n':
-			args->normalization = 1;
+			args->normalization = 0;
 			break;
 		case 'o':
 			args->output_file = optarg;

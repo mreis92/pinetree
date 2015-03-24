@@ -16,8 +16,8 @@
 #define NUM_ERRORS 0
 #define MARKOV_ORDER 3
 #define EVALUE 40
-#define C_THRESHOLD 3.5
-#define A_THRESHOLD 15.5
+#define C_THRESHOLD -1.1
+#define A_THRESHOLD 2.3
 #define E_THRESHOLD 7
 
 #define PSEUDOCOUNTS 0.001
