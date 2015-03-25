@@ -37,10 +37,13 @@ void print_pair_info(fasta_align *cur_align, pinetree_args *args, dataset_t *tds
 			
 		fprintf(output_file, "miRNA id: %s\n", mds->ids[mid]);
 		fprintf(output_file, "Reg. mechanism: %s\n", reg_mechanism);
-		fprintf(output_file, "Complementarity score: %.1f\n", cur_align->cscore);
+
+		fprintf(output_file, "Complementarity score: %.*f\n", 
+			(args->normalization ? 5 : 1), cur_align->cscore);
 
 		if(args->accessibility)
-			fprintf(output_file, "Accessibility score: %.1f\n", cur_align->ascore);
+			fprintf(output_file, "Accessibility score: %.*f\n", 
+				(args->normalization ? 5 : 1), cur_align->ascore);
 
 		fprintf(output_file, "miRNA:\t%s\n", seq2);
 		fprintf(output_file, "\t%s\n", align);
@@ -48,10 +51,12 @@ void print_pair_info(fasta_align *cur_align, pinetree_args *args, dataset_t *tds
 		fprintf(output_file, "#\n");
 	}	
 	else {
-		fprintf(output_file, "%s,%s,%.1f", tds->ids[tid], mds->ids[mid], cur_align->cscore);
+		fprintf(output_file, "%s,%s,%.*f", tds->ids[tid], mds->ids[mid], 
+			(args->normalization ? 5 : 1), cur_align->cscore);
 
 		if(args->accessibility)
-			fprintf(output_file, ",%.1f", cur_align->ascore);
+			fprintf(output_file, ",%.*f", 
+				(args->normalization ? 5 : 1), cur_align->ascore);
 
 		fprintf(output_file,",%s,%s", align, reg_mechanism);
 	
