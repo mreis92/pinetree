@@ -281,13 +281,15 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 	
 	snprintf(args->param_info,	sizeof args->param_info,
 							"# e-value threshold: %d\n"
-							"# Complementarity threshold: %.1f\n"
-							"# Accessibility threshold: %.1f\n"
+							"# Complementarity threshold: %.*f\n"
+							"# Accessibility threshold: %.*f\n"
 							"# Seed region from nucleotides %u to %u\n"
 							"# Central region from nucleotides %u to %u\n"
 							"# Scoring schema - Match(%.1f) Mismatch(%.1f) Gaps(%.1f) Wobbles(%.1f)\n" 
 							"# Accessibility: %s\tNormalization: %s\tHuman readable output: %s\n\n", 
-							args->evalue, args->c_threshold, args->a_threshold, 
+							args->evalue,
+							args->normalization ? 5 : 1, args->c_threshold, 
+							args->normalization ? 5 : 1, args->a_threshold, 
 							s->seed_start, s->seed_stop, 
 							s->cr_start, s->cr_stop,
 							s->match, s->mismatch, s->gap, s->wobble,
