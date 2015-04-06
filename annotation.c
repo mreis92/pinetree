@@ -19,5 +19,4 @@ void annotate_targets(dataset_t *tds, StrMap *id_map, char* filename){
 	}
 		
 	safe_fclose(annotation_file);
-	sm_delete(id_map);
 }
