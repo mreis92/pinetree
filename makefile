@@ -37,7 +37,7 @@ clean:
 
 pack-pinetree:
 	mkdir -p pinetree-$(VER)
-	cp *.c *.h *.py *.sh makefile fasta36 pinetree-$(VER)
+	cp *.c *.h *.sh makefile CONFIG LICENSE pinetree-$(VER)
 	tar cvf pinetree-$(VER)-src.tar pinetree-$(VER)
 	gzip -f --best pinetree-$(VER)-src.tar
 	rm -rf pinetree-$(VER)

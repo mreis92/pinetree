@@ -19,7 +19,6 @@
 #include "util.h"
 
 int main(int argc, char **argv){
-	uint proc;
 	pinetree_args* args = read_cml_arguments(argc, argv);
 	
 	dataset_t *tds = parse_fasta(args->transcript_file);
@@ -33,7 +32,7 @@ int main(int argc, char **argv){
 	
 	sm_delete(target_map);
 	
-	#pragma omp parallel
+	#pragma omp parallel num_threads(args->num_processors)
 	{
 		uint i, j;
 		FILE *output_file = safe_fopen(args->temp_file[omp_get_thread_num()], "w");

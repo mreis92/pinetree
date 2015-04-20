@@ -320,11 +320,23 @@ char *get_string(FILE * fp, uint size)
 	return safe_realloc(str, sizeof(char) * len);
 }
 
+/* Get the system temporary folder. If none exists,
+	 the '/tmp' folder is returned.											*/
+char* get_tmp_dir(){
+	char const *dir = getenv("TMPDIR");
+
+	if (!dir)
+		dir = "/tmp";
+
+  return dir;
+}
+
 /* Creates a file with a unique filename. */
 char* create_unique_file(char* template){
 	int fd;
 	char buffer[BUFSIZE];
-	strncpy(buffer, template, sizeof buffer);
+
+	snprintf(buffer, BUFSIZE, "%s/%s", get_tmp_dir(), template);
 
 	fd = mkstemp(buffer);
 

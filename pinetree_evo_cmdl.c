@@ -104,7 +104,6 @@ void print_usage(){
 }
 
 pinetree_args* read_cml_arguments(int argc, char **argv){
-	char buffer[BUFSIZE];
 	int i, c;
 	int tflag = 0, mflag = 0;
 	char *config_file = NULL;
@@ -197,7 +196,7 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 	
 	args->temp_file = (char**)safe_malloc(sizeof(char*) * args->num_processors);
 	for(i = 0; i < args->num_processors; i++){
-		char *temp_file = create_unique_file("/tmp/pinetree_XXXXXX");
+		char *temp_file = create_unique_file("pinetree_XXXXXX");
 		args->temp_file[i] = temp_file;
 	}
 	

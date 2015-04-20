@@ -298,7 +298,7 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 	
 	args->temp_file = (char**)safe_malloc(sizeof(char*) * args->num_processors);
 	for(i = 0; i < args->num_processors; i++){
-		char *temp_file = create_unique_file("/tmp/pinetree_XXXXXX");
+		char *temp_file = create_unique_file("pinetree_XXXXXX");
 		args->temp_file[i] = temp_file;
 	}
 		
