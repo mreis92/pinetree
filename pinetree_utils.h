@@ -28,6 +28,7 @@ typedef struct pinetree_args {
 	uint num_errors;
 	uint markov_order;
 	boolean normalization;
+	boolean verbose;
 	boolean human_output;
 	boolean accessibility;
 } pinetree_args;

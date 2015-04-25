@@ -36,17 +36,19 @@ void file_joiner(pinetree_args* args){
 	snprintf(buffer, BUFSIZE, "%s.%s", args->output_file, (args->human_output ? "txt" : "csv"));
 	output_file = safe_fopen(buffer, "w");
 	
-	fprintf(output_file, "# Start time of execution: %s", args->start_time);
-	fprintf(output_file, "# Finish time of execution: %s", get_system_time());
-	fprintf(output_file, "# Number of processors: %u\n\n", args->num_processors);
-	
-	fprintf(output_file, "# Transcript file used: %s\n", args->transcript_file);
-	fprintf(output_file, "# miRNA file used: %s\n", args->mirna_file);
-	
-	if(args->annotation_file)
-		fprintf(output_file, "# Annotation file used: %s\n", args->annotation_file);
+	if(args->verbose){
+		fprintf(output_file, "# Start time of execution: %s", args->start_time);
+		fprintf(output_file, "# End time of execution: %s", get_system_time());
+		fprintf(output_file, "# Number of processors: %u\n\n", args->num_processors);
 		
-	fputs(args->param_info, output_file);
+		fprintf(output_file, "# Transcript file used: %s\n", args->transcript_file);
+		fprintf(output_file, "# miRNA file used: %s\n", args->mirna_file);
+		
+		if(args->annotation_file)
+			fprintf(output_file, "# Annotation file used: %s\n", args->annotation_file);
+			
+		fputs(args->param_info, output_file);
+	}
 	
 	if(!args->human_output)
 		fputs(args->header, output_file);

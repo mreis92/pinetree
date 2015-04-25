@@ -122,16 +122,10 @@ void print_usage(){
 		"\tenable human readable output\n"
 		BOLDWHITE "-v, --version\n" RESET 
 		"\tprints the current version of the program\n"
+		BOLDWHITE "-V, --verbose\n" RESET 
+		"\toutput extended information in the header\n"
 		"\n"
 		BOLDWHITE "Scoring schema parameters:\n" RESET 
-		BOLDWHITE "-g, --gap [value]\n" RESET 
-		"\tvalue for the gap penalty\n"
-		BOLDWHITE "-u, --match [value]\n" RESET 
-		"\tvalue for the match\n"
-		BOLDWHITE "-w, --wobble [value]\n" RESET 
-		"\tvalue for the G:U wobble\n"
-		BOLDWHITE "-y, --mismatch [value]\n" RESET 
-		"\tvalue for the mismatch\n"
 		BOLDWHITE "-x, --central_start [value]\n" RESET 
 		"\tindicates where the central region starts\n"
 		BOLDWHITE "-X, --central_stop [value]\n" RESET 
@@ -178,11 +172,12 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 			{"seed_stop", required_argument, 0, 'Z'},
 			{"target",  required_argument, 0, 't'},
 			{"version",  no_argument, 0, 'v'},
+			{"verbose",  no_argument, 0, 'V'},
 			{"wobble",  required_argument, 0, 'w'},
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long (argc, argv, "a:A:bc:C:e:f:g:hm:no:p:Pt:u:vw:x:X:y:z:Z", 
+		c = getopt_long (argc, argv, "a:A:bc:C:e:f:g:hm:no:p:Pt:u:vVw:x:X:y:z:Z", 
 		long_options, &option_index);
 
 		/* Detect the end of the options. */
@@ -246,6 +241,9 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 		case 'v':
 			print_version();
 			exit(0);
+		case 'V':
+			args->verbose = 1;
+			break;
 		case 'w':
 			s->wobble = atof(optarg);
 			break;
@@ -283,9 +281,8 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 							"# e-value threshold: %d\n"
 							"# Complementarity threshold: %.*f\n"
 							"# Accessibility threshold: %.*f\n"
-							"# Seed region from nucleotides %u to %u\n"
-							"# Central region from nucleotides %u to %u\n"
-							"# Scoring schema - Match(%.1f) Mismatch(%.1f) Gaps(%.1f) Wobbles(%.1f)\n" 
+							"# Seed region: nucleotides %u to %u\n"
+							"# Central region: nucleotides %u to %u\n"
 							"# Accessibility: %s\tNormalization: %s\tHuman readable output: %s\n\n", 
 							args->evalue,
 							args->normalization ? 5 : 1, args->c_threshold, 
@@ -295,6 +292,7 @@ pinetree_args* read_cml_arguments(int argc, char **argv){
 							s->match, s->mismatch, s->gap, s->wobble,
 							(args->accessibility ? "Yes" : "No"),
 							(args->normalization ? "Yes" : "No"), (args->human_output ? "Yes" : "No"));
+	
 	
 	args->temp_file = (char**)safe_malloc(sizeof(char*) * args->num_processors);
 	for(i = 0; i < args->num_processors; i++){
