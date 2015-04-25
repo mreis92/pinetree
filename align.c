@@ -24,7 +24,7 @@ fasta_info *process_alignment(uint nproc, uint evalue, char* mirna, char* transc
 	fasta_info *info = (fasta_info*) safe_malloc(sizeof(fasta_info));
 	fasta_align **aligns = (fasta_align**) safe_malloc(sizeof(fasta_align*)*entries);
 	
-	snprintf(command, sizeof(command), "./fasta36 -T %u -q -n -E %u %s %s 1", 
+	snprintf(command, sizeof(command), "./fasta36 -T %u -q -i -U -n -E %u %s %s 1", 
 	nproc, evalue, mirna, transcript);
 	
 	file = safe_popen(command, "r");
@@ -80,7 +80,7 @@ fasta_info *process_alignment(uint nproc, uint evalue, char* mirna, char* transc
 			aligns[count]->target_id = atoi(target_code);
 			aligns[count]->start = start;
 			aligns[count]->target_seq = strdup(target_seq);
-			aligns[count]->miRNA_seq = strdup(miRNA_seq);
+			aligns[count]->miRNA_seq = complement(miRNA_seq);
 			count++;
 			
 			if(count >= entries)
@@ -262,24 +262,28 @@ score_t *create_score_schema(float match, float mismatch, float gap, float wobbl
 		}
 	}
 
-	score_matrix['a']['a'] = match;
-	score_matrix['t']['t'] = match;
-	score_matrix['A']['A'] = match;
-	score_matrix['T']['T'] = match;
-	score_matrix['u']['u'] = match;
-	score_matrix['U']['U'] = match;
+	score_matrix['a']['u'] = match;
+	score_matrix['u']['a'] = match;
+	score_matrix['A']['U'] = match;
+	score_matrix['U']['A'] = match;
+	score_matrix['t']['a'] = match;
+	score_matrix['a']['t'] = match;
+	score_matrix['A']['T'] = match;
+	score_matrix['T']['A'] = match;
 	
-	score_matrix['c']['c'] = match;
-	score_matrix['g']['g'] = match;
-	score_matrix['G']['G'] = match;
-	score_matrix['C']['C'] = match;
+	score_matrix['c']['g'] = match;
+	score_matrix['g']['c'] = match;
+	score_matrix['C']['G'] = match;
+	score_matrix['G']['C'] = match;
 
-	score_matrix['G']['A'] = wobble;
-	score_matrix['g']['a'] = wobble;
-	score_matrix['T']['C'] = wobble;
-	score_matrix['t']['c'] = wobble;
-	score_matrix['U']['C'] = wobble;
-	score_matrix['u']['c'] = wobble;
+	score_matrix['G']['U'] = wobble;
+	score_matrix['g']['u'] = wobble;
+	score_matrix['u']['g'] = wobble;
+	score_matrix['U']['G'] = wobble;
+	score_matrix['t']['g'] = wobble;
+	score_matrix['g']['t'] = wobble;
+	score_matrix['T']['G'] = wobble;
+	score_matrix['G']['T'] = wobble;
 
 	model->score_matrix = score_matrix;
 
