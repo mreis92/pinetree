@@ -22,7 +22,7 @@
 #define A_THRESHOLD 15.5
 #define E_THRESHOLD 7
 
-#define PSEUDOCOUNTS 0.001
+#define PSEUDOCOUNTS 1
 
 /* Default size for strings */
 #define LONGBUF 1024
