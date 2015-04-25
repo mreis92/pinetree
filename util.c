@@ -248,7 +248,7 @@ char *complement(char *seq)
 			break;
 		case 'A':
 		case 'a':
-			res[i] = 'T';
+			res[i] = 'U';
 			break;
 		case 'T':
 		case 't':
@@ -323,7 +323,7 @@ char *get_string(FILE * fp, uint size)
 /* Get the system temporary folder. If none exists,
 	 the '/tmp' folder is returned.											*/
 char* get_tmp_dir(){
-	char const *dir = getenv("TMPDIR");
+	char *dir = getenv("TMPDIR");
 
 	if (!dir)
 		dir = "/tmp";
